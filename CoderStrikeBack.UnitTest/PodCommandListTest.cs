@@ -15,5 +15,13 @@ namespace CoderStrikeBack.UnitTest
 
             Assert.IsEmpty(podCommandList.CommandList);
         }
+
+        [TestCase]
+        public void Constructor_ArgList_ShouldInitializedCommandList()
+        {
+            var podCommandList = new PodCommandList(new List<PodCommand>());
+
+            Assert.IsEmpty(podCommandList.CommandList);
+        }
     }
 }

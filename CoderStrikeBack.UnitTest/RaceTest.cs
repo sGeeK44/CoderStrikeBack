@@ -50,11 +50,52 @@ namespace CoderStrikeBack.UnitTest
         }
 
         [TestCase]
-        public void ComputeNextCommands_EmptyCheckpointList_ShouldReturnNullCommand()
+        public void ComputeNextCommands_NullCheckpointList_ShouldReturnNullCommand()
         {
             var race = Race.Create(1, null);
 
             Assert.IsNull(race.ComputeNextCommands());
+        }
+
+        [TestCase]
+        public void ComputeNextCommands_EmptyCheckpointList_ShouldReturnNullCommand()
+        {
+            var race = Race.Create(1, new List<Checkpoint>());
+
+            Assert.IsNull(race.ComputeNextCommands());
+        }
+
+        [TestCase]
+        public void ComputeNextCommands_OneCheckpointTwoPlayerPod_ShouldReturnNullCommand()
+        {
+            var race = Race.Create(1, new List<Checkpoint> { new Checkpoint { Position = new Point(1, 1) } });
+            race.UpdatePlayerPod(new List<Pod> { new Pod() });
+
+            var result = race.ComputeNextCommands();
+            
+            Assert.AreEqual(1, result.CommandList.Count);
+        }
+
+        [TestCase]
+        public void ComputeNextCommand_ArgPodNull_ShouldReturnNullCommand()
+        {
+            var checkpointPosition = new Point(1, 1);
+            var race = Race.Create(1, new List<Checkpoint> { new Checkpoint { Position = checkpointPosition } });
+
+            var result = race.ComputeNextCommand(null);
+
+            Assert.IsNull(result);
+        }
+
+        [TestCase]
+        public void ComputeNextCommand_OneCheckpoint_TargetPositionShouldCheckpointPosition()
+        {
+            var checkpointPosition = new Point(1, 1);
+            var race = Race.Create(1, new List<Checkpoint> { new Checkpoint { Position = checkpointPosition } });
+
+            var result = race.ComputeNextCommand(new Pod());
+
+            Assert.AreEqual(checkpointPosition, result.TargetPosition);
         }
     }
 }

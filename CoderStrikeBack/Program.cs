@@ -107,10 +107,21 @@ namespace CoderStrikeBack
         public IList<Checkpoint> CheckpointList { get; set; }
         public List<Pod> PlayerPod { get; set; }
         public List<Pod> OpponentPod { get; set; }
+        public Checkpoint CurrentTarget { get; private set; }
 
         public PodCommandList ComputeNextCommands()
         {
-            return null;
+            if (CheckpointList == null || CheckpointList.Count == 0) return null;
+
+            return new PodCommandList(PlayerPod.Select(_ => ComputeNextCommand(_)).ToList());
+        }
+
+        public PodCommand ComputeNextCommand(Pod podToMove)
+        {
+            if (podToMove == null) return null;
+            if (CurrentTarget == null) return new OriginMoveCommand();
+
+            return new AcceleratePodCommand(CurrentTarget.Position, 100);
         }
 
         public void UpdatePlayerPod(List<Pod> playerPod)
@@ -133,27 +144,41 @@ namespace CoderStrikeBack
                 OpponentPod = new List<Pod>()
             };
 
+            result.ComputeFirstTarget();
+
             return result;
         }
+
+        private void ComputeFirstTarget()
+        {
+            CurrentTarget = CheckpointList != null ? CheckpointList.FirstOrDefault() : null;
+        }
     }
-    
+
     public class PodCommandList
     {
+        private List<PodCommand> list;
+
         public PodCommandList()
         {
-            CommandList = new List<PodCommandBase>();
+            CommandList = new List<PodCommand>();
         }
 
-        public List<PodCommandBase> CommandList { get; set; }
+        public PodCommandList(List<PodCommand> list)
+        {
+            CommandList = list;
+        }
+
+        public List<PodCommand> CommandList { get; set; }
     }
 
     #endregion
 
     #region PodCommand
 
-    public abstract class PodCommandBase
+    public abstract class PodCommand
     {
-        protected PodCommandBase(Point targetPosition)
+        protected PodCommand(Point targetPosition)
         {
             if (targetPosition == null) throw new ArgumentNullException("targetPosition");
 
@@ -164,7 +189,12 @@ namespace CoderStrikeBack
         public virtual string Command { get { return TargetPosition.ToString(); } }
     }
 
-    public class AcceleratePodCommand : PodCommandBase
+    public class OriginMoveCommand : PodCommand
+    {
+        public OriginMoveCommand() : base(new Point(0, 0)) { }
+    }
+
+    public class AcceleratePodCommand : PodCommand
     {
         public AcceleratePodCommand(Point targetPosition, int power) : base(targetPosition)
         {
@@ -179,7 +209,7 @@ namespace CoderStrikeBack
         }
     }
 
-    public class ShieldPodCommand : PodCommandBase
+    public class ShieldPodCommand : PodCommand
     {
         public ShieldPodCommand(Point targetPosition) : base(targetPosition) { }
 
@@ -195,7 +225,7 @@ namespace CoderStrikeBack
 
     public class Checkpoint
     {
-        private Checkpoint() { }
+        public Checkpoint() { }
 
         public static Checkpoint CreateFromLine(int index, string p)
         {
