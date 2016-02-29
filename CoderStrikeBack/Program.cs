@@ -18,7 +18,7 @@ namespace CoderStrikeBack
             {
                 var roundInput = consoleBuilder.GetRoundInput();
 
-                consoleBuilder.WriteNextRound();
+                consoleBuilder.WriteNextRound(new RoundGameOutput());
             }
         }
     }
@@ -31,7 +31,7 @@ namespace CoderStrikeBack
     {
         GlobalInput GetGlobalInput();
         RoundGameInput GetRoundInput();
-        void WriteNextRound();
+        void WriteNextRound(RoundGameOutput output);
     }
 
     public class ConsoleBuilder : IGameBuilder
@@ -65,9 +65,9 @@ namespace CoderStrikeBack
             };
         }
 
-        public void WriteNextRound()
+        public void WriteNextRound(RoundGameOutput output)
         {
-
+            output.ExecuteCommand();
         }
 
         private static List<Pod> GetOpponentPodList()
@@ -107,6 +107,71 @@ namespace CoderStrikeBack
         public List<Pod> PlayerPod { get; set; }
         public List<Pod> OppenentPod { get; set; }
     }
+    
+    public class RoundGameOutput
+    {
+        public RoundGameOutput()
+        {
+            PlayerPod = new List<PodCommandBase>();
+        }
+
+        public List<PodCommandBase> PlayerPod { get; set; }
+
+        public void ExecuteCommand()
+        {
+            foreach (var podCommandBase in PlayerPod)
+            {
+                podCommandBase.ExecuteCommand();
+            }
+        }
+    }
+
+    #endregion
+
+    #region PodCommand
+
+    public abstract class PodCommandBase
+    {
+        protected PodCommandBase(Point targetPosition)
+        {
+            if (targetPosition == null) throw new ArgumentNullException("targetPosition");
+
+            TargetPosition = targetPosition;
+        }
+        public Point TargetPosition { get; set; }
+
+        public void ExecuteCommand()
+        {
+            Console.WriteLine(Command);
+        }
+
+        public virtual string Command { get { return TargetPosition.ToString(); } }
+    }
+
+    public class AcceleratePodCommand : PodCommandBase
+    {
+        public AcceleratePodCommand(Point targetPosition, int power) : base(targetPosition)
+        {
+            Power = power;
+        }
+
+        public int Power { get; set; }
+
+        public override string Command
+        {
+            get { return string.Format("{0} {1}", base.Command, Power); }
+        }
+    }
+
+    public class ShieldPodCommand : PodCommandBase
+    {
+        public ShieldPodCommand(Point targetPosition) : base(targetPosition) { }
+
+        public override string Command
+        {
+            get { return string.Format("{0} SHIELD", base.Command); }
+        }
+    }
 
     #endregion
 
@@ -123,6 +188,11 @@ namespace CoderStrikeBack
         {
             X = x;
             Y = y;
+        }
+
+        public override string ToString()
+        {
+            return string.Format("{0} {1}", X, Y);
         }
 
         public static Point CreateFromLine(string line)
@@ -156,6 +226,9 @@ namespace CoderStrikeBack
 
     public class Pod
     {
+        private const int POWER_MAX = 200;
+        private const int ANGLE_CELCIUS_MAX = 18;
+        private const int POD_RADIUS = 400;
         private const char INPUT_SEPARATOR = ' ';
 
         private Pod() { }
@@ -164,6 +237,7 @@ namespace CoderStrikeBack
         public Speed CurrentSpeed { get; set; }
         public int Angle { get; set; }
         public int NextCheckPointId { get; set; }
+        public int Radius { get { return POD_RADIUS; } }
 
         public static Pod CreateFromLine(string line)
         {

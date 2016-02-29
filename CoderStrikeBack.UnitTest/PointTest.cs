@@ -44,5 +44,15 @@ namespace CoderStrikeBack.UnitTest
             Assert.AreEqual(x, point.X);
             Assert.AreEqual(y, point.Y);
         }
+
+        [TestCase(0, 0)]
+        [TestCase(1, 1)]
+        [TestCase(-1, -1)]
+        public void ToString_ValidPoint_ShouldReturnStringRepresentation(int x, int y)
+        {
+            var point = new Point(x, y);
+
+            Assert.AreEqual(string.Format("{0} {1}", x, y), point.ToString());
+        }
     }
 }
