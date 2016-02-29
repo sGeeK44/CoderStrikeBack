@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CoderStrikeBack
 {
@@ -10,42 +11,49 @@ namespace CoderStrikeBack
         static void Main()
         {
             var consoleBuilder = new ConsoleBuilder();
-
-            var globalInput = consoleBuilder.GetGlobalInput();
+            var race = consoleBuilder.GetRace();
 
             // game loop
             while (true)
             {
-                var roundInput = consoleBuilder.GetRoundInput();
-
-                consoleBuilder.WriteNextRound(new RoundGameOutput());
+                consoleBuilder.UpdateRace(race);
+                var nextCommands = race.ComputeNextCommands();
+                consoleBuilder.ExecuteCommands(nextCommands);
             }
         }
     }
 
     #endregion
 
-    #region IGameBuilder
+    #region GameBuilder
 
-    public interface IGameBuilder
-    {
-        GlobalInput GetGlobalInput();
-        RoundGameInput GetRoundInput();
-        void WriteNextRound(RoundGameOutput output);
-    }
-
-    public class ConsoleBuilder : IGameBuilder
+    public class ConsoleBuilder
     {
         private const int COUNT_PLAYER_POD = 2;
         private const int COUNT_OPPONENT_POD = 2;
 
-        public GlobalInput GetGlobalInput()
+        public Race GetRace()
         {
-            return new GlobalInput
+            var laps = GetLaps();
+            var checkpointList = GetCheckpointList();
+            return Race.Create(laps, checkpointList);
+        }
+
+        public void UpdateRace(Race race)
+        {
+            var playerPod = GetPlayerPodList();
+            race.UpdatePlayerPod(playerPod);
+
+            var opponentPod = GetOpponentPodList();
+            race.UpdateOpponentPod(opponentPod);
+        }
+
+        public void ExecuteCommands(PodCommandList nextCommands)
+        {
+            foreach (var podCommand in nextCommands.CommandList)
             {
-                Laps = GetLaps(),
-                CheckpointList = GetCheckpointList()
-            };
+                Console.WriteLine(podCommand.Command);
+            }
         }
 
         private static IList<Checkpoint> GetCheckpointList()
@@ -63,20 +71,6 @@ namespace CoderStrikeBack
         private static int GetLaps()
         {
             return int.Parse(Console.ReadLine());
-        }
-
-        public RoundGameInput GetRoundInput()
-        {
-            return new RoundGameInput
-            {
-                PlayerPod = GetPlayerPodList(),
-                OppenentPod = GetOpponentPodList()
-            };
-        }
-
-        public void WriteNextRound(RoundGameOutput output)
-        {
-            output.ExecuteCommand();
         }
 
         private static List<Pod> GetOpponentPodList()
@@ -105,34 +99,52 @@ namespace CoderStrikeBack
         }
     }
 
-    public class GlobalInput
+    public class Race
     {
+        private Race() { }
+
         public int Laps { get; set; }
         public IList<Checkpoint> CheckpointList { get; set; }
-    }
-
-    public class RoundGameInput
-    {
         public List<Pod> PlayerPod { get; set; }
-        public List<Pod> OppenentPod { get; set; }
+        public List<Pod> OpponentPod { get; set; }
+
+        public PodCommandList ComputeNextCommands()
+        {
+            return null;
+        }
+
+        public void UpdatePlayerPod(List<Pod> playerPod)
+        {
+            PlayerPod = playerPod;
+        }
+
+        public void UpdateOpponentPod(List<Pod> opponentPod)
+        {
+            OpponentPod = opponentPod;
+        }
+
+        public static Race Create(int laps, IList<Checkpoint> checkpoints)
+        {
+            var result = new Race
+            {
+                Laps = laps,
+                CheckpointList = checkpoints,
+                PlayerPod = new List<Pod>(),
+                OpponentPod = new List<Pod>()
+            };
+
+            return result;
+        }
     }
     
-    public class RoundGameOutput
+    public class PodCommandList
     {
-        public RoundGameOutput()
+        public PodCommandList()
         {
-            PlayerPod = new List<PodCommandBase>();
+            CommandList = new List<PodCommandBase>();
         }
 
-        public List<PodCommandBase> PlayerPod { get; set; }
-
-        public void ExecuteCommand()
-        {
-            foreach (var podCommandBase in PlayerPod)
-            {
-                podCommandBase.ExecuteCommand();
-            }
-        }
+        public List<PodCommandBase> CommandList { get; set; }
     }
 
     #endregion
@@ -148,11 +160,6 @@ namespace CoderStrikeBack
             TargetPosition = targetPosition;
         }
         public Point TargetPosition { get; set; }
-
-        public void ExecuteCommand()
-        {
-            Console.WriteLine(Command);
-        }
 
         public virtual string Command { get { return TargetPosition.ToString(); } }
     }
@@ -261,8 +268,6 @@ namespace CoderStrikeBack
         private const int ANGLE_CELCIUS_MAX = 18;
         private const int POD_RADIUS = 400;
         private const char INPUT_SEPARATOR = ' ';
-
-        private Pod() { }
 
         public Point CurrentPosition { get; set; }
         public Speed CurrentSpeed { get; set; }
