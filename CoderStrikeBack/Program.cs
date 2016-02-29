@@ -41,19 +41,28 @@ namespace CoderStrikeBack
 
         public GlobalInput GetGlobalInput()
         {
-            var laps = int.Parse(Console.ReadLine());
-            var checkpointCount = int.Parse(Console.ReadLine());
-            var checkpointList = new List<Point>();
-            for (var i = 0; i < checkpointCount; i++)
-            {
-                checkpointList.Add(Point.CreateFromLine(Console.ReadLine()));
-            }
-
             return new GlobalInput
             {
-                Laps = laps,
-                CheckpointList = checkpointList
+                Laps = GetLaps(),
+                CheckpointList = GetCheckpointList()
             };
+        }
+
+        private static IList<Checkpoint> GetCheckpointList()
+        {
+            var checkpointCount = int.Parse(Console.ReadLine());
+            var checkpointList = new List<Checkpoint>();
+            for (var i = 0; i < checkpointCount; i++)
+            {
+                checkpointList.Add(Checkpoint.CreateFromLine(checkpointCount, Console.ReadLine()));
+            }
+
+            return checkpointList;
+        }
+
+        private static int GetLaps()
+        {
+            return int.Parse(Console.ReadLine());
         }
 
         public RoundGameInput GetRoundInput()
@@ -99,7 +108,7 @@ namespace CoderStrikeBack
     public class GlobalInput
     {
         public int Laps { get; set; }
-        public IList<Point> CheckpointList { get; set; }
+        public IList<Checkpoint> CheckpointList { get; set; }
     }
 
     public class RoundGameInput
@@ -171,6 +180,28 @@ namespace CoderStrikeBack
         {
             get { return string.Format("{0} SHIELD", base.Command); }
         }
+    }
+
+    #endregion
+
+    #region Game object
+
+    public class Checkpoint
+    {
+        private Checkpoint() { }
+
+        public static Checkpoint CreateFromLine(int index, string p)
+        {
+            return new Checkpoint
+            {
+                Index = index,
+                Position = Point.CreateFromLine(p)
+            };
+        }
+
+        public int Index { get; set; }
+
+        public Point Position { get; set; }
     }
 
     #endregion

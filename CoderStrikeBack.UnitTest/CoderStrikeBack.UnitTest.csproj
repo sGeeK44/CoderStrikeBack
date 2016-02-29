@@ -55,6 +55,7 @@
   </Choose>
   <ItemGroup>
     <Compile Include="AcceleratePodCommandTest.cs" />
+    <Compile Include="CheckpointTest.cs" />
     <Compile Include="PodTest.cs" />
     <Compile Include="ShieldPodCommandTest.cs" />
     <Compile Include="SpeedTest.cs" />
