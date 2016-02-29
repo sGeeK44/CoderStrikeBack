@@ -46,6 +46,8 @@ namespace CoderStrikeBack
 
             var opponentPod = GetOpponentPodList();
             race.UpdateOpponentPod(opponentPod);
+
+            race.UpdateState();
         }
 
         public void ExecuteCommands(PodCommandList nextCommands)
@@ -105,15 +107,15 @@ namespace CoderStrikeBack
 
         public int Laps { get; set; }
         public IList<Checkpoint> CheckpointList { get; set; }
-        public List<Pod> PlayerPod { get; set; }
-        public List<Pod> OpponentPod { get; set; }
+        public List<Pod> PlayerPodList { get; set; }
+        public List<Pod> OpponentPodList { get; set; }
         public Checkpoint CurrentTarget { get; private set; }
 
         public PodCommandList ComputeNextCommands()
         {
             if (CheckpointList == null || CheckpointList.Count == 0) return null;
 
-            return new PodCommandList(PlayerPod.Select(_ => ComputeNextCommand(_)).ToList());
+            return new PodCommandList(PlayerPodList.Select(_ => ComputeNextCommand(_)).ToList());
         }
 
         public PodCommand ComputeNextCommand(Pod podToMove)
@@ -126,12 +128,12 @@ namespace CoderStrikeBack
 
         public void UpdatePlayerPod(List<Pod> playerPod)
         {
-            PlayerPod = playerPod;
+            PlayerPodList = playerPod;
         }
 
         public void UpdateOpponentPod(List<Pod> opponentPod)
         {
-            OpponentPod = opponentPod;
+            OpponentPodList = opponentPod;
         }
 
         public static Race Create(int laps, IList<Checkpoint> checkpoints)
@@ -140,8 +142,8 @@ namespace CoderStrikeBack
             {
                 Laps = laps,
                 CheckpointList = checkpoints,
-                PlayerPod = new List<Pod>(),
-                OpponentPod = new List<Pod>()
+                PlayerPodList = new List<Pod>(),
+                OpponentPodList = new List<Pod>()
             };
 
             result.ComputeFirstTarget();
@@ -152,6 +154,26 @@ namespace CoderStrikeBack
         private void ComputeFirstTarget()
         {
             CurrentTarget = CheckpointList != null ? CheckpointList.FirstOrDefault() : null;
+        }
+
+        public void UpdateState()
+        {
+            if (PlayerhasReachTarget()) ComputeNextCheckpoint();
+        }
+
+        private void ComputeNextCheckpoint()
+        {
+            CurrentTarget = CheckpointList.FirstOrDefault(_ => _.Index == CurrentTarget.Index + 1);
+        }
+
+        private bool PlayerhasReachTarget()
+        {
+            foreach(var playerPod in PlayerPodList)
+            {
+                if (CurrentTarget.IsReach(playerPod)) return true;
+            }
+
+            return false;
         }
     }
 
@@ -225,6 +247,8 @@ namespace CoderStrikeBack
 
     public class Checkpoint
     {
+        private const int RADIUS = 400;
+
         public Checkpoint() { }
 
         public static Checkpoint CreateFromLine(int index, string p)
@@ -236,9 +260,16 @@ namespace CoderStrikeBack
             };
         }
 
+        internal bool IsReach(Pod playerPod)
+        {
+            if (playerPod == null) return false;
+            return Helper.HasCollision(this, playerPod);
+        }
+
         public int Index { get; set; }
 
         public Point Position { get; set; }
+        public int Radius { get { return RADIUS; } }
     }
 
     #endregion
@@ -296,14 +327,14 @@ namespace CoderStrikeBack
     {
         private const int POWER_MAX = 200;
         private const int ANGLE_CELCIUS_MAX = 18;
-        private const int POD_RADIUS = 400;
+        private const int RADIUS = 400;
         private const char INPUT_SEPARATOR = ' ';
 
         public Point CurrentPosition { get; set; }
         public Speed CurrentSpeed { get; set; }
         public int Angle { get; set; }
         public int NextCheckPointId { get; set; }
-        public int Radius { get { return POD_RADIUS; } }
+        public int Radius { get { return RADIUS; } }
 
         public static Pod CreateFromLine(string line)
         {
@@ -326,6 +357,20 @@ namespace CoderStrikeBack
                 Angle = angle,
                 NextCheckPointId = nextCheckPointId
             };
+        }
+    }
+
+    #endregion
+
+    #region Utils
+
+    public class Helper
+    {
+        public static bool HasCollision(Checkpoint checkpoint, Pod playerPod)
+        {
+            if (checkpoint == null) return false;
+            if (playerPod == null) return false;
+            return checkpoint.Position == playerPod.CurrentPosition;
         }
     }
 
