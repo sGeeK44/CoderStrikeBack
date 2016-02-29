@@ -124,7 +124,7 @@ namespace CoderStrikeBack.UnitTest
         }
 
         [TestCase]
-        public void RefreshState_LastTargetIsReach_CurrentTargetShouldBeNull()
+        public void RefreshState_LastTargetIsReachOneLaps_CurrentTargetShouldBeNull()
         {
             var firstCheckpointPosition = new Point(1, 1);
             var firstCheckPoint = new Checkpoint { Position = firstCheckpointPosition };
@@ -134,6 +134,19 @@ namespace CoderStrikeBack.UnitTest
             race.UpdateState();
 
             Assert.AreEqual(null, race.CurrentTarget);
+        }
+
+        [TestCase]
+        public void RefreshState_LastTargetIsReachTwoLaps_CurrentTargetShouldBeNull()
+        {
+            var firstCheckpointPosition = new Point(1, 1);
+            var firstCheckPoint = new Checkpoint { Position = firstCheckpointPosition };
+            var race = Race.Create(2, new List<Checkpoint> { firstCheckPoint });
+            race.PlayerPodList = new List<Pod> { new Pod { CurrentPosition = firstCheckpointPosition } };
+
+            race.UpdateState();
+
+            Assert.AreEqual(firstCheckPoint, race.CurrentTarget);
         }
 
         [TestCase]

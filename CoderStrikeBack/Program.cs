@@ -110,6 +110,9 @@ namespace CoderStrikeBack
         public List<Pod> PlayerPodList { get; set; }
         public List<Pod> OpponentPodList { get; set; }
         public Checkpoint CurrentTarget { get; private set; }
+        public bool HasLapsRemaining { get { return CurrentLaps < Laps; } }
+        public bool IsLastCheckpointLap { get { return CheckpointList.Last() == CurrentTarget; } }
+        public int CurrentLaps { get; private set; }
 
         public PodCommandList ComputeNextCommands()
         {
@@ -142,6 +145,7 @@ namespace CoderStrikeBack
             {
                 Laps = laps,
                 CheckpointList = checkpoints,
+                CurrentLaps = 1,
                 PlayerPodList = new List<Pod>(),
                 OpponentPodList = new List<Pod>()
             };
@@ -163,7 +167,20 @@ namespace CoderStrikeBack
 
         private void ComputeNextCheckpoint()
         {
+            if (!IsLastCheckpointLap) CompteNextTargetInSameLap();
+            else if (HasLapsRemaining) SetNewLap();
+            else CurrentTarget = null;
+        }
+
+        private void CompteNextTargetInSameLap()
+        {
             CurrentTarget = CheckpointList.FirstOrDefault(_ => _.Index == CurrentTarget.Index + 1);
+        }
+
+        private void SetNewLap()
+        {
+            CurrentLaps++;
+            ComputeFirstTarget();
         }
 
         private bool PlayerhasReachTarget()
