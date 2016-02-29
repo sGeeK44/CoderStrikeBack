@@ -103,13 +103,23 @@ namespace CoderStrikeBack
 
     public class Race
     {
+        private Checkpoint _currentTarget;
+
         private Race() { }
 
         public int Laps { get; set; }
         public IList<Checkpoint> CheckpointList { get; set; }
         public List<Pod> PlayerPodList { get; set; }
         public List<Pod> OpponentPodList { get; set; }
-        public Checkpoint CurrentTarget { get; private set; }
+        public Checkpoint CurrentTarget
+        {
+            get { return _currentTarget; }
+            private set
+            {
+                if (value == null) throw new ArgumentNullException("value");
+                _currentTarget = value;
+            }
+        }
         public bool HasLapsRemaining { get { return CurrentLaps < Laps; } }
         public bool IsLastCheckpointLap { get { return CheckpointList.Last() == CurrentTarget; } }
         public int CurrentLaps { get; private set; }
@@ -141,6 +151,8 @@ namespace CoderStrikeBack
 
         public static Race Create(int laps, IList<Checkpoint> checkpoints)
         {
+            if (checkpoints == null || checkpoints.Count == 0) throw new ArgumentException("checkpoints");
+
             var result = new Race
             {
                 Laps = laps,
@@ -157,24 +169,24 @@ namespace CoderStrikeBack
 
         private void ComputeFirstTarget()
         {
-            CurrentTarget = CheckpointList != null ? CheckpointList.FirstOrDefault() : null;
+            CurrentTarget = CheckpointList.FirstOrDefault();
         }
 
         public void UpdateState()
         {
-            if (PlayerhasReachTarget()) ComputeNextCheckpoint();
+            if (PlayerHasReachTarget()) ComputeNextCheckpoint();
         }
 
         private void ComputeNextCheckpoint()
         {
             if (!IsLastCheckpointLap) CompteNextTargetInSameLap();
             else if (HasLapsRemaining) SetNewLap();
-            else CurrentTarget = null;
         }
 
         private void CompteNextTargetInSameLap()
         {
-            CurrentTarget = CheckpointList.FirstOrDefault(_ => _.Index == CurrentTarget.Index + 1);
+            var currentIndex = CheckpointList.IndexOf(CurrentTarget);
+            CurrentTarget = CheckpointList[currentIndex + 1];
         }
 
         private void SetNewLap()
@@ -183,9 +195,9 @@ namespace CoderStrikeBack
             ComputeFirstTarget();
         }
 
-        private bool PlayerhasReachTarget()
+        private bool PlayerHasReachTarget()
         {
-            foreach(var playerPod in PlayerPodList)
+            foreach (var playerPod in PlayerPodList)
             {
                 if (CurrentTarget.IsReach(playerPod)) return true;
             }
@@ -231,6 +243,11 @@ namespace CoderStrikeBack
     public class OriginMoveCommand : PodCommand
     {
         public OriginMoveCommand() : base(new Point(0, 0)) { }
+
+        public override string Command
+        {
+            get { return string.Format("{0} {1}", base.Command, 0); }
+        }
     }
 
     public class AcceleratePodCommand : PodCommand
@@ -264,7 +281,7 @@ namespace CoderStrikeBack
 
     public class Checkpoint
     {
-        private const int RADIUS = 400;
+        private const int RADIUS = 600;
 
         public Checkpoint() { }
 
@@ -280,7 +297,15 @@ namespace CoderStrikeBack
         internal bool IsReach(Pod playerPod)
         {
             if (playerPod == null) return false;
-            return Helper.HasCollision(this, playerPod);
+
+            var deltaX = Position.X - playerPod.CurrentPosition.X;
+            var deltaXSquared = deltaX * deltaX;
+            var deltaY = Position.Y - playerPod.CurrentPosition.Y;
+            var deltaYSquared = deltaY * deltaY;
+            var sumRadii = Radius;
+            var sumRadiiSquared = sumRadii * sumRadii;
+
+            return (deltaXSquared + deltaYSquared) <= sumRadiiSquared;
         }
 
         public int Index { get; set; }
@@ -387,7 +412,17 @@ namespace CoderStrikeBack
         {
             if (checkpoint == null) return false;
             if (playerPod == null) return false;
-            return checkpoint.Position == playerPod.CurrentPosition;
+
+            var deltaX = checkpoint.Position.X - playerPod.CurrentPosition.X;
+            var deltaXSquared = deltaX * deltaX;
+            var deltaY = checkpoint.Position.Y - playerPod.CurrentPosition.Y;
+            var deltaYSquared = deltaY * deltaY;
+
+            // Calculate the sum of the radii, then square it
+            var sumRadii = checkpoint.Radius + playerPod.Radius;
+            var sumRadiiSquared = sumRadii * sumRadii;
+
+            return (deltaXSquared + deltaYSquared) <= sumRadiiSquared;
         }
     }
 
