@@ -8,6 +8,9 @@ namespace CoderStrikeBack
 
     class Program
     {
+        public const int CountPlayerPod = 2;
+        public const int CountOpponentPod = 2;
+
         static void Main()
         {
             var consoleBuilder = new ConsoleBuilder();
@@ -29,9 +32,6 @@ namespace CoderStrikeBack
 
     public class ConsoleBuilder
     {
-        private const int COUNT_PLAYER_POD = 2;
-        private const int COUNT_OPPONENT_POD = 2;
-
         public Race GetRace()
         {
             var laps = GetLaps();
@@ -41,11 +41,8 @@ namespace CoderStrikeBack
 
         public void UpdateRace(Race race)
         {
-            var playerPod = GetPlayerPodList();
-            race.UpdatePlayerPod(playerPod);
-
-            var opponentPod = GetOpponentPodList();
-            race.UpdateOpponentPod(opponentPod);
+            UpdatePlayerPodList(race);
+            UpdateOpponentPodList(race);
 
             race.UpdateState();
         }
@@ -75,136 +72,26 @@ namespace CoderStrikeBack
             return int.Parse(Console.ReadLine());
         }
 
-        private static List<Pod> GetOpponentPodList()
+        private static void UpdateOpponentPodList(Race race)
         {
-            var opponentPodList = new List<Pod>();
-            for (var i = 0; i < COUNT_OPPONENT_POD; i++)
+            for (var i = 0; i < Program.CountOpponentPod; i++)
             {
-                opponentPodList.Add(CreatePodFromConsole());
+                race.UpdateOpponentPod(i, Console.ReadLine());
             }
-            return opponentPodList;
         }
 
-        private static List<Pod> GetPlayerPodList()
+        private static void UpdatePlayerPodList(Race race)
         {
-            var playerPodList = new List<Pod>();
-            for (var i = 0; i < COUNT_PLAYER_POD; i++)
+            for (var i = 0; i < Program.CountPlayerPod; i++)
             {
-                playerPodList.Add(CreatePodFromConsole());
+                race.UpdatePlayerPod(i, Console.ReadLine());
             }
-            return playerPodList;
-        }
-
-        private static Pod CreatePodFromConsole()
-        {
-            return Pod.CreateFromLine(Console.ReadLine());
         }
     }
 
-    public class Race
-    {
-        private Checkpoint _currentTarget;
+    #endregion
 
-        private Race() { }
-
-        public int Laps { get; set; }
-        public IList<Checkpoint> CheckpointList { get; set; }
-        public List<Pod> PlayerPodList { get; set; }
-        public List<Pod> OpponentPodList { get; set; }
-        public Checkpoint CurrentTarget
-        {
-            get { return _currentTarget; }
-            private set
-            {
-                if (value == null) throw new ArgumentNullException("value");
-                _currentTarget = value;
-            }
-        }
-        public bool HasLapsRemaining { get { return CurrentLaps < Laps; } }
-        public bool IsLastCheckpointLap { get { return CheckpointList.Last() == CurrentTarget; } }
-        public int CurrentLaps { get; private set; }
-
-        public PodCommandList ComputeNextCommands()
-        {
-            if (CheckpointList == null || CheckpointList.Count == 0) return null;
-
-            return new PodCommandList(PlayerPodList.Select(_ => ComputeNextCommand(_)).ToList());
-        }
-
-        public PodCommand ComputeNextCommand(Pod podToMove)
-        {
-            if (podToMove == null) return null;
-            if (CurrentTarget == null) return new OriginMoveCommand();
-
-            return new AcceleratePodCommand(CurrentTarget.Position, 100);
-        }
-
-        public void UpdatePlayerPod(List<Pod> playerPod)
-        {
-            PlayerPodList = playerPod;
-        }
-
-        public void UpdateOpponentPod(List<Pod> opponentPod)
-        {
-            OpponentPodList = opponentPod;
-        }
-
-        public static Race Create(int laps, IList<Checkpoint> checkpoints)
-        {
-            if (checkpoints == null || checkpoints.Count == 0) throw new ArgumentException("checkpoints");
-
-            var result = new Race
-            {
-                Laps = laps,
-                CheckpointList = checkpoints,
-                CurrentLaps = 1,
-                PlayerPodList = new List<Pod>(),
-                OpponentPodList = new List<Pod>()
-            };
-
-            result.ComputeFirstTarget();
-
-            return result;
-        }
-
-        private void ComputeFirstTarget()
-        {
-            CurrentTarget = CheckpointList.FirstOrDefault();
-        }
-
-        public void UpdateState()
-        {
-            if (PlayerHasReachTarget()) ComputeNextCheckpoint();
-        }
-
-        private void ComputeNextCheckpoint()
-        {
-            if (!IsLastCheckpointLap) CompteNextTargetInSameLap();
-            else if (HasLapsRemaining) SetNewLap();
-        }
-
-        private void CompteNextTargetInSameLap()
-        {
-            var currentIndex = CheckpointList.IndexOf(CurrentTarget);
-            CurrentTarget = CheckpointList[currentIndex + 1];
-        }
-
-        private void SetNewLap()
-        {
-            CurrentLaps++;
-            ComputeFirstTarget();
-        }
-
-        private bool PlayerHasReachTarget()
-        {
-            foreach (var playerPod in PlayerPodList)
-            {
-                if (CurrentTarget.IsReach(playerPod)) return true;
-            }
-
-            return false;
-        }
-    }
+    #region PodCommand
 
     public class PodCommandList
     {
@@ -223,10 +110,6 @@ namespace CoderStrikeBack
         public List<PodCommand> CommandList { get; set; }
     }
 
-    #endregion
-
-    #region PodCommand
-
     public abstract class PodCommand
     {
         protected PodCommand(Point targetPosition)
@@ -238,16 +121,6 @@ namespace CoderStrikeBack
         public Point TargetPosition { get; set; }
 
         public virtual string Command { get { return TargetPosition.ToString(); } }
-    }
-
-    public class OriginMoveCommand : PodCommand
-    {
-        public OriginMoveCommand() : base(new Point(0, 0)) { }
-
-        public override string Command
-        {
-            get { return string.Format("{0} {1}", base.Command, 0); }
-        }
     }
 
     public class AcceleratePodCommand : PodCommand
@@ -277,24 +150,154 @@ namespace CoderStrikeBack
 
     #endregion
 
-    #region Game object
+    #region Race
+
+    public class Race
+    {
+        #region Constructors
+
+        private Race() { }
+
+        #endregion
+
+        #region Porperties
+
+        public int Laps { get; set; }
+
+        public IList<Checkpoint> CheckpointList { get; set; }
+
+        public List<Pod> PlayerPodList { get; set; }
+
+        public List<Pod> OpponentPodList { get; set; }
+
+        public int CurrentLaps { get; private set; }
+
+        public bool HasLapsRemaining { get { return CurrentLaps < Laps; } }
+
+        #endregion
+
+        #region Pod Commands
+
+        public PodCommandList ComputeNextCommands()
+        {
+            if (CheckpointList == null || CheckpointList.Count == 0) return null;
+
+            return new PodCommandList(PlayerPodList.Select(ComputeNextCommand).ToList());
+        }
+
+        public PodCommand ComputeNextCommand(Pod podToMove)
+        {
+            if (podToMove == null) return null;
+
+            return new AcceleratePodCommand(podToMove.CurrentTarget.Position, 100);
+        }
+
+        #endregion
+
+        #region Refresh game state
+
+        public void UpdateState()
+        {
+            foreach (var pod in PlayerPodList)
+            {
+                if (pod.HasReachTarget()) pod.ComputeNextCheckpoint();
+            }
+        }
+
+        public void UpdatePlayerPod(int index, string line)
+        {
+            PlayerPodList[index].Update(line);
+        }
+
+        public void UpdateOpponentPod(int index, string line)
+        {
+            PlayerPodList[index].Update(line);
+        }
+
+        #endregion
+
+        #region Services
+
+        public void SetNewLap()
+        {
+            CurrentLaps++;
+        }
+
+        public Checkpoint GetLastCheckPoint()
+        {
+            return CheckpointList.Last();
+        }
+
+        public Checkpoint GetNextCheckpoint(Checkpoint currentTarget)
+        {
+            var currentIndex = CheckpointList.IndexOf(currentTarget);
+            return CheckpointList[currentIndex + 1];
+        }
+
+        #endregion
+
+        #region Factory methods
+
+        public static Race Create(int laps, IList<Checkpoint> checkpoints)
+        {
+            if (checkpoints == null || checkpoints.Count == 0) throw new ArgumentException("checkpoints");
+
+            var result = new Race
+            {
+                Laps = laps,
+                CheckpointList = checkpoints,
+                CurrentLaps = 1,
+                PlayerPodList = new List<Pod>(),
+                OpponentPodList = new List<Pod>()
+            };
+
+            for (var i = 0; i < Program.CountPlayerPod; i++)
+            {
+                result.PlayerPodList.Add(Pod.Create(result));
+            }
+
+            for (var i = 0; i < Program.CountOpponentPod; i++)
+            {
+                result.OpponentPodList.Add(Pod.Create(result));
+            }
+
+            return result;
+        }
+
+        #endregion
+    }
+
+    #endregion
+
+    #region Checkpoint
 
     public class Checkpoint
     {
+        #region Constantes
+
         private const int RADIUS = 600;
+
+        #endregion
+
+        #region Constructors
 
         public Checkpoint() { }
 
-        public static Checkpoint CreateFromLine(int index, string p)
-        {
-            return new Checkpoint
-            {
-                Index = index,
-                Position = Point.CreateFromLine(p)
-            };
-        }
+        #endregion
 
-        internal bool IsReach(Pod playerPod)
+        #region Properties
+
+        public int Index { get; set; }
+
+        public Point Position { get; set; }
+
+        public int Radius { get { return RADIUS; } }
+
+        #endregion
+
+        #region Services
+
+        public bool IsReach(Pod playerPod)
         {
             if (playerPod == null) return false;
 
@@ -308,57 +311,20 @@ namespace CoderStrikeBack
             return (deltaXSquared + deltaYSquared) <= sumRadiiSquared;
         }
 
-        public int Index { get; set; }
+        #endregion
 
-        public Point Position { get; set; }
-        public int Radius { get { return RADIUS; } }
-    }
+        #region Factory methods
 
-    #endregion
-
-    #region Geometrie
-
-    public class Point
-    {
-        private const char INPUT_SEPARATOR = ' ';
-
-        public int X { get; set; }
-        public int Y { get; set; }
-
-        public Point(int x, int y)
+        public static Checkpoint CreateFromLine(int index, string p)
         {
-            X = x;
-            Y = y;
+            return new Checkpoint
+            {
+                Index = index,
+                Position = Point.CreateFromLine(p)
+            };
         }
 
-        public override string ToString()
-        {
-            return string.Format("{0} {1}", X, Y);
-        }
-
-        public static Point CreateFromLine(string line)
-        {
-            if (string.IsNullOrEmpty(line)) throw new ArgumentNullException("line");
-
-            var inputs = line.Split(INPUT_SEPARATOR);
-            if (inputs == null || inputs.Length != 2) throw new ArgumentException(string.Format("La ligne d'entrée n'est pas correctement formatté. Attendu:x y. Reçu:{0}", line));
-
-            var checkpointX = int.Parse(inputs[0]);
-            var checkpointY = int.Parse(inputs[1]);
-            return new Point(checkpointX, checkpointY);
-        }
-    }
-
-    public class Speed
-    {
-        public int X { get; set; }
-        public int Y { get; set; }
-
-        public Speed(int speedX, int speedY)
-        {
-            X = speedX;
-            Y = speedY;
-        }
+        #endregion
     }
 
     #endregion
@@ -367,18 +333,46 @@ namespace CoderStrikeBack
 
     public class Pod
     {
+        #region Constantes
+
         private const int POWER_MAX = 200;
         private const int ANGLE_CELCIUS_MAX = 18;
-        private const int RADIUS = 400;
         private const char INPUT_SEPARATOR = ' ';
 
-        public Point CurrentPosition { get; set; }
-        public Speed CurrentSpeed { get; set; }
-        public int Angle { get; set; }
-        public int NextCheckPointId { get; set; }
-        public int Radius { get { return RADIUS; } }
+        #endregion
 
-        public static Pod CreateFromLine(string line)
+        #region Constructor
+
+        public Pod() { }
+
+        public Pod(Race currentRace)
+        {
+            CurrentRace = currentRace;
+        }
+
+        #endregion
+
+        #region Properties
+
+        public Point CurrentPosition { get; set; }
+
+        public Speed CurrentSpeed { get; set; }
+
+        public int Angle { get; set; }
+
+        public int Radius { get { return 400; } }
+
+        public int NextCheckPointId { get; set; }
+
+        public virtual Checkpoint CurrentTarget { get; set; }
+
+        public Race CurrentRace { get; set; }
+
+        #endregion
+
+        #region Refresh game state
+
+        public void Update(string line)
         {
             if (string.IsNullOrEmpty(line)) throw new ArgumentNullException("line");
 
@@ -392,15 +386,198 @@ namespace CoderStrikeBack
             var angle = int.Parse(inputs[4]);
             var nextCheckPointId = int.Parse(inputs[5]);
 
-            return new Pod
-            {
-                CurrentPosition = new Point(x, y),
-                CurrentSpeed = new Speed(vx, vy),
-                Angle = angle,
-                NextCheckPointId = nextCheckPointId
-            };
+            CurrentPosition = new Point(x, y);
+            CurrentSpeed = new Speed(vx, vy);
+            Angle = angle;
+            NextCheckPointId = nextCheckPointId;
         }
+
+        #endregion
+
+        #region Services
+
+        public bool IsLastCheckpointLap()
+        {
+            return CurrentRace.GetLastCheckPoint() == CurrentTarget;
+        }
+
+        public void ComputeNextCheckpoint()
+        {
+            if (!IsLastCheckpointLap()) CompteNextTargetInSameLap();
+            else if (CurrentRace.HasLapsRemaining) CurrentRace.SetNewLap();
+        }
+
+        private void CompteNextTargetInSameLap()
+        {
+            CurrentTarget = CurrentRace.GetNextCheckpoint(CurrentTarget);
+        }
+
+        public bool HasReachTarget()
+        {
+            return CurrentTarget.IsReach(this);
+        }
+
+        #endregion
+
+        #region Factory methods
+
+        public static Pod Create(Race currentRace)
+        {
+            if (currentRace == null) throw new ArgumentNullException("currentRace");
+
+            return new Pod(currentRace);
+        }
+
+        #endregion
     }
+
+    #endregion
+
+    #region Geometrie
+
+    #region Point
+
+    public class Point : IEquatable<Point>
+    {
+        #region Constantes
+
+        private const char INPUT_SEPARATOR = ' ';
+
+        #endregion
+
+        #region Constructors
+
+        public Point(int x, int y)
+        {
+            X = x;
+            Y = y;
+        }
+
+        #endregion
+
+        #region Properties
+
+        public int X { get; set; }
+        public int Y { get; set; }
+
+        #endregion
+
+        #region Services
+
+        public override string ToString()
+        {
+            return string.Format("{0} {1}", X, Y);
+        }
+
+        public override bool Equals(object other)
+        {
+            return Equals(other as Point);
+        }
+
+        public bool Equals(Point other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return X == other.X && Y == other.Y;
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (X * 397) ^ Y;
+            }
+        }
+
+        public static bool operator ==(Point left, Point right)
+        {
+            return Equals(left, right);
+        }
+
+        public static bool operator !=(Point left, Point right)
+        {
+            return !Equals(left, right);
+        }
+
+        #endregion
+
+        #region Factory methods
+
+        public static Point CreateFromLine(string line)
+        {
+            if (string.IsNullOrEmpty(line)) throw new ArgumentNullException("line");
+
+            var inputs = line.Split(INPUT_SEPARATOR);
+            if (inputs == null || inputs.Length != 2) throw new ArgumentException(string.Format("La ligne d'entrée n'est pas correctement formatté. Attendu:x y. Reçu:{0}", line));
+
+            var checkpointX = int.Parse(inputs[0]);
+            var checkpointY = int.Parse(inputs[1]);
+            return new Point(checkpointX, checkpointY);
+        }
+
+
+        #endregion
+    }
+
+    #endregion
+
+    #region Speed
+
+    public class Speed
+    {
+        #region Constructors
+
+        public Speed(int speedX, int speedY)
+        {
+            X = speedX;
+            Y = speedY;
+        }
+
+        #endregion
+
+        #region Properties
+
+        public int X { get; set; }
+        public int Y { get; set; }
+
+        #endregion
+
+        #region Services
+        
+        public override bool Equals(object other)
+        {
+            return Equals(other as Speed);
+        }
+
+        public bool Equals(Speed other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return X == other.X && Y == other.Y;
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (X * 397) ^ Y;
+            }
+        }
+
+        public static bool operator ==(Speed left, Speed right)
+        {
+            return Equals(left, right);
+        }
+
+        public static bool operator !=(Speed left, Speed right)
+        {
+            return !Equals(left, right);
+        }
+
+        #endregion
+    }
+
+    #endregion
 
     #endregion
 

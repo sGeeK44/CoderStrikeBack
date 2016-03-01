@@ -9,55 +9,73 @@ namespace CoderStrikeBack.UnitTest
     public class RaceTest
     {
         [TestCase]
-        public void Create_ValidInputArg_ShouldInitializedRace()
+        public void Create_ValidInputArg_ShouldInitCheckpointList()
         {
             var checkPointList = new List<Checkpoint> { Checkpoint.CreateFromLine(0, "1 2") };
-            const int laps = 1;
             var race = Race.Create(1, checkPointList);
 
             Assert.AreEqual(checkPointList, race.CheckpointList);
-            Assert.AreEqual(laps, race.Laps);
-            Assert.IsEmpty(race.PlayerPodList);
-            Assert.IsEmpty(race.OpponentPodList);
         }
 
         [TestCase]
-        public void UpdatePlayerPod_NewPod_PlayerPodCollectionShouldContainsNewItem()
+        public void Create_ValidInputArg_ShouldInitLaps()
         {
-            var race = Race.Create(1, new List<Checkpoint> { new Checkpoint { Position = new Point(1, 1) } });
-            var playerPod1 = new Mock<Pod>();
-            var playerPod2 = new Mock<Pod>();
-            var newPlayerPodState = new List<Pod> { playerPod1.Object, playerPod2.Object };
+            var checkPointList = TestKit.CreateCheckpointList(1);
 
-            race.UpdatePlayerPod(newPlayerPodState);
+            const int expectedLaps = 1;
+            var race = Race.Create(expectedLaps, checkPointList);
 
-            Assert.Contains(playerPod1.Object, race.PlayerPodList);
-            Assert.Contains(playerPod2.Object, race.PlayerPodList);
+            Assert.AreEqual(expectedLaps, race.Laps);
         }
 
         [TestCase]
-        public void UpdateOpponentPod_NewPod_OpponentPodCollectionShouldContainsNewItem()
+        public void Create_ValidInputArg_ShouldInitPlayerPodList()
         {
-            var race = Race.Create(1, new List<Checkpoint> { new Checkpoint { Position = new Point(1, 1) } });
-            var opponentPod1 = new Mock<Pod>();
-            var opponentPod2 = new Mock<Pod>();
-            var newOpponentPodState = new List<Pod> { opponentPod1.Object, opponentPod2.Object };
+            var checkPointList = TestKit.CreateCheckpointList(1);
+            var race = Race.Create(1, checkPointList);
 
-            race.UpdateOpponentPod(newOpponentPodState);
-
-            Assert.Contains(opponentPod1.Object, race.OpponentPodList);
-            Assert.Contains(opponentPod2.Object, race.OpponentPodList);
+            Assert.AreEqual(2, race.PlayerPodList.Count);
         }
 
         [TestCase]
-        public void ComputeNextCommands_OneCheckpointTwoPlayerPod_ShouldReturnNullCommand()
+        public void Create_ValidInputArg_ShouldInitOpponentPodList()
         {
-            var race = Race.Create(1, new List<Checkpoint> { new Checkpoint { Position = new Point(1, 1) } });
-            race.UpdatePlayerPod(new List<Pod> { new Pod() });
+            var checkPointList = TestKit.CreateCheckpointList(1);
+            var race = Race.Create(1, checkPointList);
 
-            var result = race.ComputeNextCommands();
-            
-            Assert.AreEqual(1, result.CommandList.Count);
+            Assert.AreEqual(2, race.OpponentPodList.Count);
+        }
+
+        [TestCase]
+        public void UpdateFirstPlayerPod_ValidInputLine_ShouldUpdatePodWithoutException()
+        {
+            var race = TestKit.CreateValidRaceWithOneLapsOneCheckPoint();
+
+            race.UpdatePlayerPod(0, TestKit.CreateValidPodLine());
+        }
+
+        [TestCase]
+        public void UpdateFirstOpponentPod_ValidInputLine_ShouldUpdatePodWithoutException()
+        {
+            var race = TestKit.CreateValidRaceWithOneLapsOneCheckPoint();
+
+            race.UpdateOpponentPod(0, TestKit.CreateValidPodLine());
+        }
+
+        [TestCase]
+        public void UpdateSecondPlayerPod_ValidInputLine_ShouldUpdatePodWithoutException()
+        {
+            var race = TestKit.CreateValidRaceWithOneLapsOneCheckPoint();
+
+            race.UpdatePlayerPod(1, TestKit.CreateValidPodLine());
+        }
+
+        [TestCase]
+        public void UpdateSecondOpponentPod_ValidInputLine_ShouldUpdatePodWithoutException()
+        {
+            var race = TestKit.CreateValidRaceWithOneLapsOneCheckPoint();
+
+            race.UpdateOpponentPod(1, TestKit.CreateValidPodLine());
         }
 
         [TestCase]
@@ -74,77 +92,14 @@ namespace CoderStrikeBack.UnitTest
         [TestCase]
         public void ComputeNextCommand_OneCheckpoint_TargetPositionShouldCheckpointPosition()
         {
-            var checkpointPosition = new Point(1, 1);
-            var race = Race.Create(1, new List<Checkpoint> { new Checkpoint { Position = checkpointPosition } });
+            var checkpoint = new Checkpoint { Position = new Point(1, 1) };
+            var race = Race.Create(1, new List<Checkpoint> { checkpoint });
+            var pod = new Mock<Pod>();
+            pod.Setup(_ => _.CurrentTarget).Returns(checkpoint);
 
-            var result = race.ComputeNextCommand(new Pod());
+            var result = race.ComputeNextCommand(pod.Object);
 
-            Assert.AreEqual(checkpointPosition, result.TargetPosition);
-        }
-
-        [TestCase]
-        public void RefreshState_TargetIsNotReachNoPlayerPod_CurrentTargetShouldBeSame()
-        {
-            var firstCheckpointPosition = new Point(1, 1);
-            var firstCheckPoint = new Checkpoint { Position = firstCheckpointPosition };
-            var race = Race.Create(1, new List<Checkpoint> { firstCheckPoint });
-
-            race.UpdateState();
-
-            Assert.AreEqual(firstCheckPoint, race.CurrentTarget);
-        }
-
-        [TestCase]
-        public void RefreshState_TargetIsNotReach_CurrentTargetShouldBeSame()
-        {
-            var firstCheckpointPosition = new Point(601, 0);
-            var firstCheckPoint = new Checkpoint { Position = firstCheckpointPosition };
-            var race = Race.Create(1, new List<Checkpoint> { firstCheckPoint });
-            race.PlayerPodList = new List<Pod> { new Pod() { CurrentPosition = new Point(0, 0) } };
-
-            race.UpdateState();
-
-            Assert.AreEqual(firstCheckPoint, race.CurrentTarget);
-        }
-
-        [TestCase]
-        public void RefreshState_LastTargetIsReachOneLaps_CurrentTargetShouldBeNull()
-        {
-            var firstCheckpointPosition = new Point(1, 1);
-            var firstCheckPoint = new Checkpoint { Position = firstCheckpointPosition };
-            var race = Race.Create(1, new List<Checkpoint> { firstCheckPoint });
-            race.PlayerPodList = new List<Pod> { new Pod { CurrentPosition = firstCheckpointPosition } };
-
-            race.UpdateState();
-
-            Assert.AreEqual(firstCheckPoint, race.CurrentTarget);
-        }
-
-        [TestCase]
-        public void RefreshState_LastTargetIsReachTwoLaps_CurrentTargetShouldBeNull()
-        {
-            var firstCheckpointPosition = new Point(1, 1);
-            var firstCheckPoint = new Checkpoint { Position = firstCheckpointPosition };
-            var race = Race.Create(2, new List<Checkpoint> { firstCheckPoint });
-            race.PlayerPodList = new List<Pod> { new Pod { CurrentPosition = firstCheckpointPosition } };
-
-            race.UpdateState();
-
-            Assert.AreEqual(firstCheckPoint, race.CurrentTarget);
-        }
-
-        [TestCase]
-        public void RefreshState_NotLastTargetIsReach_CurrentTargetShouldBeNext()
-        {
-            var pointReach = new Point(1, 1);
-            var firstCheckPoint = new Checkpoint { Index = 0, Position = pointReach };
-            var secondCheckPoint = new Checkpoint { Index = 1 };
-            var race = Race.Create(1, new List<Checkpoint> { firstCheckPoint, secondCheckPoint });
-            race.PlayerPodList = new List<Pod> { new Pod { CurrentPosition = pointReach } };
-
-            race.UpdateState();
-
-            Assert.AreEqual(secondCheckPoint, race.CurrentTarget);
+            Assert.AreEqual(checkpoint.Position, result.TargetPosition);
         }
     }
 }

@@ -54,5 +54,41 @@ namespace CoderStrikeBack.UnitTest
 
             Assert.AreEqual(string.Format("{0} {1}", x, y), point.ToString());
         }
+
+        [TestCase]
+        public void Equals_CompareToNull_ShouldBeNotEquals()
+        {
+            var firstPoint = new Point(1, 0);
+            var secondPoint = new Point(0, 0);
+
+            Assert.IsFalse(firstPoint.Equals(secondPoint));
+        }
+
+        [TestCase]
+        public void Equals_XIsDifferent_ShouldBeNotEquals()
+        {
+            var firstPoint = new Point(1, 0);
+            var secondPoint = new Point(0, 0);
+
+            Assert.IsFalse(firstPoint.Equals(secondPoint));
+        }
+
+        [TestCase]
+        public void Equals_YIsDifferent_ShouldBeNotEquals()
+        {
+            var firstPoint = new Point(0, 1);
+            var secondPoint = new Point(0, 0);
+
+            Assert.IsFalse(firstPoint.Equals(secondPoint));
+        }
+
+        [TestCase]
+        public void Equals_SameCoordinate_ShouldBeEquals()
+        {
+            var firstPoint = new Point(1, 1);
+            var secondPoint = new Point(1, 1);
+
+            Assert.IsTrue(firstPoint.Equals(secondPoint));
+        }
     }
 }
