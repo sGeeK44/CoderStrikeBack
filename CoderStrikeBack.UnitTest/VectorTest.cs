@@ -7,11 +7,27 @@ namespace CoderStrikeBack.UnitTest
     public class VectorTest
     {
         [TestCase]
+        public void Create_OnePoint_OriginShouldBeZeroTarget()
+        {
+            var vector = new Vector(1, 1);
+
+            Assert.AreEqual(new Point(0, 0), vector.Origin);
+        }
+
+        [TestCase]
+        public void Create_OnePoint_TargetShouldBeSpecifiedParam()
+        {
+            var vector = new Vector(1, 1);
+
+            Assert.AreEqual(new Point(1, 1), vector.Target);
+        }
+
+        [TestCase]
         public void Create_TwoPoint_NormShouldBeEqualZero()
         {
-            var segment = new Vector(new Point(0, 0), new Point(0, 0));
+            var vector = new Vector(new Point(0, 0), new Point(0, 0));
 
-            AssertNorm(segment, 0);
+            AssertNorm(vector, 0);
         }
 
         [TestCase(1, 0)]
@@ -20,9 +36,9 @@ namespace CoderStrikeBack.UnitTest
         [TestCase(0, -1)]
         public void Create_TwoPoint_NormShouldBeEqualOne(int x, int y)
         {
-            var segment = new Vector(new Point(0, 0), new Point(x, y));
+            var vector = new Vector(new Point(0, 0), new Point(x, y));
 
-            AssertNorm(segment, 1);
+            AssertNorm(vector, 1);
         }
 
         [TestCase(1, 1)]
@@ -31,9 +47,9 @@ namespace CoderStrikeBack.UnitTest
         [TestCase(1, -1)]
         public void Create_TwoPoint_NormShouldBeEqualSqrt_2(int x, int y)
         {
-            var segment = new Vector(new Point(0, 0), new Point(x, y));
+            var vector = new Vector(new Point(0, 0), new Point(x, y));
 
-            AssertNorm(segment, Math.Sqrt(2));
+            AssertNorm(vector, Math.Sqrt(2));
         }
 
         [TestCase]
@@ -68,9 +84,36 @@ namespace CoderStrikeBack.UnitTest
             Assert.AreEqual(25, ab.Scalar(ac));
         }
 
-        private void AssertNorm(Vector segment, double expectedResult)
+        [TestCase]
+        public void Sum_ValidArgFromOrigin_ShouldReturnRightValue()
         {
-            Assert.AreEqual(expectedResult, segment.Norm);
+            var a = new Point(0, 0);
+            var b = new Point(0, 1);
+            var c = new Point(1, 0);
+            var ab = new Vector(a, b);
+            var ac = new Vector(a, c);
+            var expectedResult = new Vector(new Point(0, 0), new Point(1, 1));
+
+            Assert.AreEqual(expectedResult, ab.Sum(ac));
+        }
+
+        [TestCase]
+        public void Sum_ValidArg_ShouldReturnRightValue()
+        {
+            var a = new Point(1, 1);
+            var b = new Point(2, 2);
+            var c = new Point(-1, 0);
+            var d = new Point(-3, 0);
+            var ab = new Vector(a, b);
+            var cd = new Vector(c, d);
+            var expectedResult = new Vector(new Point(1, 1), new Point(0, 2));
+
+            Assert.AreEqual(expectedResult, ab.Sum(cd));
+        }
+
+        private void AssertNorm(Vector vector, double expectedResult)
+        {
+            Assert.AreEqual(expectedResult, vector.Norm);
         }
     }
 }

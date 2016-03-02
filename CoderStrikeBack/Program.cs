@@ -590,26 +590,50 @@ namespace CoderStrikeBack
 
     #region Vector
 
-    public class Vector
+    public class Vector : IEquatable<Vector>
     {
+        private Point Origin1;
+        private long p1;
+        private long p2;
+
         #region Constructors
 
-        public Vector(Point orign, Point target)
+        public Vector(int x, int y)
         {
-            if (orign == null) throw new ArgumentNullException("a");
-            if (target == null) throw new ArgumentNullException("b");
+            Origin = new Point(0, 0);
+            Target = new Point(x, y);
+        }
 
-            Origin = orign;
+        public Vector(Point origin, Point target)
+        {
+            if (origin == null) throw new ArgumentNullException("origin");
+            if (target == null) throw new ArgumentNullException("target");
+
+            Origin = origin;
             Target = target;
+        }
+
+        public Vector(Point origin, long x, long y)
+        {
+            if (origin == null) throw new ArgumentNullException("origin");
+
+            Origin = origin;
+            Target = new Point(Origin.X + x, Origin.Y + y);
         }
 
         #endregion
 
         #region Properties
 
-        public long X { get { return Target.X - Origin.X; } }
+        public long X
+        {
+            get { return Target.X - Origin.X; }
+        }
 
-        public long Y { get { return Target.Y - Origin.Y; } }
+        public long Y
+        {
+            get { return Target.Y - Origin.Y; }
+        }
 
         public Point Origin { get; private set; }
 
@@ -624,11 +648,46 @@ namespace CoderStrikeBack
 
         #region Services
 
+        public override bool Equals(object other)
+        {
+            return Equals(other as Vector);
+        }
+
+        public bool Equals(Vector other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return Equals(Origin, other.Origin) && Equals(Target, other.Target);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return ((Origin != null ? Origin.GetHashCode() : 0) * 397) ^ (Target != null ? Target.GetHashCode() : 0);
+            }
+        }
+
+        public static bool operator ==(Vector left, Vector right)
+        {
+            return Equals(left, right);
+        }
+
+        public static bool operator !=(Vector left, Vector right)
+        {
+            return !Equals(left, right);
+        }
+
         public long Scalar(Vector other)
         {
             if (other == null) throw new ArgumentNullException("other");
 
             return X*other.X + Y*other.Y;
+        }
+
+        public Vector Sum(Vector ac)
+        {
+            return new Vector(Origin, X + ac.X, Y + ac.Y);
         }
 
         #endregion
@@ -653,6 +712,7 @@ namespace CoderStrikeBack
         #region Properties
 
         public int X { get; set; }
+
         public int Y { get; set; }
 
         #endregion
