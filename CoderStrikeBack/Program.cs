@@ -457,7 +457,7 @@ namespace CoderStrikeBack
 
         #region Constructors
 
-        public Point(int x, int y)
+        public Point(long x, long y)
         {
             X = x;
             Y = y;
@@ -467,8 +467,9 @@ namespace CoderStrikeBack
 
         #region Properties
 
-        public int X { get; set; }
-        public int Y { get; set; }
+        public long X { get; set; }
+
+        public long Y { get; set; }
 
         #endregion
 
@@ -495,7 +496,7 @@ namespace CoderStrikeBack
         {
             unchecked
             {
-                return (X * 397) ^ Y;
+                return (X.GetHashCode() * 397) ^ Y.GetHashCode();
             }
         }
 
@@ -525,6 +526,110 @@ namespace CoderStrikeBack
             return new Point(checkpointX, checkpointY);
         }
 
+
+        #endregion
+    }
+
+    #endregion
+
+    #region Angle
+
+    public class Angle
+    {
+        #region Constructor
+
+        private Angle(Vector v1, Vector v2)
+        {
+            V1 = v1;
+            V2 = v2;
+        }
+
+        #endregion
+
+        #region Properties
+
+        public Vector V1 { get; private set; }
+
+        public Vector V2 { get; private set; }
+
+        public double Cos { get { return -V1.Scalar(V2) / (V1.Norm * V2.Norm); } }
+
+        public int ValueInDegree { get { return (int)Math.Round(RadToDegree(ValueInRadian)); } }
+
+        public double ValueInRadian { get { return Math.Acos(Cos); } }
+
+        private static double RadToDegree(double rad)
+        {
+            return (rad * 180) / Math.PI;
+        }
+
+        #endregion
+
+        #region Factory methods
+
+        public static Angle CreateFromPoint(Point initialPoint, Point throughPoint, Point targetPoint)
+        {
+            var v1 = new Vector(initialPoint, throughPoint);
+            var v2 = new Vector(throughPoint, targetPoint);
+
+            return CreateFromVector(v1, v2);
+        }
+
+        public static Angle CreateFromVector(Vector v1, Vector v2)
+        {
+            if (v1.Norm <= 0) return null;
+            if (v2.Norm <= 0) return null;
+
+            return new Angle(v1, v2);
+        }
+
+        #endregion
+    }
+
+    #endregion
+
+    #region Vector
+
+    public class Vector
+    {
+        #region Constructors
+
+        public Vector(Point orign, Point target)
+        {
+            if (orign == null) throw new ArgumentNullException("a");
+            if (target == null) throw new ArgumentNullException("b");
+
+            Origin = orign;
+            Target = target;
+        }
+
+        #endregion
+
+        #region Properties
+
+        public long X { get { return Target.X - Origin.X; } }
+
+        public long Y { get { return Target.Y - Origin.Y; } }
+
+        public Point Origin { get; private set; }
+
+        public Point Target { get; private set; }
+
+        public double Norm
+        {
+            get { return Math.Sqrt(Math.Pow(X, 2) + Math.Pow(Y, 2)); }
+        }
+
+        #endregion
+
+        #region Services
+
+        public long Scalar(Vector other)
+        {
+            if (other == null) throw new ArgumentNullException("other");
+
+            return X*other.X + Y*other.Y;
+        }
 
         #endregion
     }
