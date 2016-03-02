@@ -220,7 +220,13 @@ namespace CoderStrikeBack
         public Checkpoint GetNextCheckpoint(Checkpoint currentTarget)
         {
             var currentIndex = CheckpointList.IndexOf(currentTarget);
+            if (IsLastCheckpointIndex(currentIndex)) return GetFirstCheckPoint();
             return CheckpointList[currentIndex + 1];
+        }
+
+        private bool IsLastCheckpointIndex(int currentIndex)
+        {
+            return CheckpointList.Count - 1 == currentIndex;
         }
 
         #endregion
@@ -318,8 +324,6 @@ namespace CoderStrikeBack
 
         #region Constantes
 
-        private const int POWER_MAX = 200;
-        private const int MAX_SPEED_ANGLE_CELCIUS = 18;
         private const char INPUT_SEPARATOR = ' ';
 
         #endregion
@@ -337,11 +341,11 @@ namespace CoderStrikeBack
 
         #region Properties
 
-        public Point CurrentPosition { get; set; }
+        public virtual Point CurrentPosition { get; set; }
 
         public Speed CurrentSpeed { get; set; }
 
-        public int Angle { get; set; }
+        public int AngleGetted { get; set; }
 
         public int Radius { get { return 400; } }
 
@@ -359,11 +363,13 @@ namespace CoderStrikeBack
 
         public virtual Checkpoint NextCheckpoint { get { return CurrentRace.GetCheckpoint(NextCheckpointId); } }
 
-        public Race CurrentRace { get; set; }
+        public virtual Race CurrentRace { get; set; }
 
         public int CurrentLap { get; private set; }
 
         public bool HasLapsRemaining { get { return CurrentLap < CurrentRace.Laps; } }
+
+        public ITurnStragegy CurrentTurnStrategy { get; set; }
 
         #endregion
 
@@ -385,7 +391,7 @@ namespace CoderStrikeBack
             
             CurrentPosition = new Point(x, y);
             CurrentSpeed = new Speed(vx, vy);
-            Angle = angle;
+            AngleGetted = angle;
             NextCheckpointId = nextCheckPointId;
         }
 
@@ -415,13 +421,13 @@ namespace CoderStrikeBack
 
         public PodCommand ComputeNextCommand()
         {
-            var power = ComputePower();
-            return new AcceleratePodCommand(NextCheckpoint.Position, power);
-        }
+            var nextNextCheckpoint = CurrentRace.GetNextCheckpoint(NextCheckpoint);
+            var virageAngle = Angle.CreateFromPoint(CurrentPosition, NextCheckpoint.Position, nextNextCheckpoint.Position);
 
-        private int ComputePower()
-        {
-            return POWER_MAX;
+            CurrentTurnStrategy = TurnStrategyFactory.Create(virageAngle);
+            CurrentTurnStrategy.Target = NextCheckpoint.Position;
+
+            return CurrentTurnStrategy.ComputeNextCommand();
         }
 
         #endregion
@@ -439,6 +445,71 @@ namespace CoderStrikeBack
         }
 
         #endregion
+    }
+
+    #endregion
+
+    #region TurnStragegy
+
+    public class TurnStrategyFactory
+    {
+        public static ITurnStragegy Create(Angle virageAngle)
+        {
+            if (virageAngle.ValueInDegree > 135) return new LargeTurnStrategy();
+            if (virageAngle.ValueInDegree > 90) return new MediumTurnStrategy();
+            if (virageAngle.ValueInDegree > 45) return new SmallTurnStrategy();
+
+            return new SpinTurnStrategy();
+        }
+    }
+
+    public interface ITurnStragegy
+    {
+        Point Target { get; set; }
+
+        PodCommand ComputeNextCommand();
+    }
+
+    public abstract class TurnStrategyBase : ITurnStragegy
+    {
+        protected const int POWER_MAX = 200;
+        protected const int MAX_SPEED_ANGLE_CELCIUS = 18;
+
+        public Point Target { get; set; }
+
+        public abstract PodCommand ComputeNextCommand();
+    }
+
+    public class LargeTurnStrategy  : TurnStrategyBase
+    {
+        public override PodCommand ComputeNextCommand()
+        {
+            return new AcceleratePodCommand(Target, POWER_MAX);
+        }
+    }
+
+    public class MediumTurnStrategy : TurnStrategyBase
+    {
+        public override PodCommand ComputeNextCommand()
+        {
+            return new AcceleratePodCommand(Target, POWER_MAX);
+        }
+    }
+
+    public class SmallTurnStrategy : TurnStrategyBase
+    {
+        public override PodCommand ComputeNextCommand()
+        {
+            return new AcceleratePodCommand(Target, POWER_MAX);
+        }
+    }
+
+    public class SpinTurnStrategy : TurnStrategyBase
+    {
+        public override PodCommand ComputeNextCommand()
+        {
+            return new AcceleratePodCommand(Target, POWER_MAX);
+        }
     }
 
     #endregion
@@ -616,6 +687,8 @@ namespace CoderStrikeBack
             Origin = origin;
             Target = new Point(Origin.X + x, Origin.Y + y);
         }
+
+        public Vector(int x1, int y1, int x2, int y2) : this(new Point(x1, y1), new Point(x2, y2)) { }
 
         #endregion
 

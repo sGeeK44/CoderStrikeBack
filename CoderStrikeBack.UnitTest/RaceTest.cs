@@ -92,14 +92,17 @@ namespace CoderStrikeBack.UnitTest
         [TestCase]
         public void ComputeNextCommand_OneCheckpoint_TargetPositionShouldCheckpointPosition()
         {
-            var checkpoint = new Checkpoint { Position = new Point(1, 1) };
-            var race = Race.Create(1, new List<Checkpoint> { checkpoint });
+            var checkpoint1 = new Checkpoint { Position = new Point(1, 1) };
+            var checkpoint2 = new Checkpoint { Position = new Point(2, 2) };
+            var race = Race.Create(1, new List<Checkpoint> { checkpoint1, checkpoint2 });
             var pod = new Mock<Pod>();
-            pod.Setup(_ => _.NextCheckpoint).Returns(checkpoint);
+            pod.Setup(_ => _.NextCheckpoint).Returns(checkpoint2);
+            pod.Setup(_ => _.CurrentRace).Returns(race);
+            pod.Setup(_ => _.CurrentPosition).Returns(new Point(0,0));
 
             var result = race.ComputeNextCommand(pod.Object);
 
-            Assert.AreEqual(checkpoint.Position, result.TargetPosition);
+            Assert.AreEqual(checkpoint2.Position, result.TargetPosition);
         }
     }
 }

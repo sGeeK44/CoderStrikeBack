@@ -78,7 +78,7 @@ namespace CoderStrikeBack.UnitTest
 
             pod.Update(TestKit.CreatePodLine(0, 0, 0, 0, angle, 0));
 
-            Assert.AreEqual(angle, pod.Angle);
+            Assert.AreEqual(angle, pod.AngleGetted);
         }
 
         [TestCase(0)]

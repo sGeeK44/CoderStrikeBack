@@ -51,5 +51,25 @@ namespace CoderStrikeBack.UnitTest
 
             Assert.IsTrue(firstSpeed.Equals(secondSpeed));
         }
+
+        [TestCase]
+        [Ignore("")]
+        public void X()
+        {
+            var firstSpeed = new Speed(407, -22);
+
+            Assert.AreEqual(0, firstSpeed.AbsoluteValue);
+        }
+
+        [TestCase]
+        [Ignore("")]
+        public void X2()
+        {
+            var force = new Vector(6043, 2764, 4171, 7467).Norm * 50;
+            
+            var expectedSpeed = new Speed(-15, 39).AbsoluteValue;
+
+            Assert.AreEqual(expectedSpeed, force);
+        }
     }
 }
