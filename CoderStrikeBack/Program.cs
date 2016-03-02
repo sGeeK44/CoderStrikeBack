@@ -592,10 +592,6 @@ namespace CoderStrikeBack
 
     public class Vector : IEquatable<Vector>
     {
-        private Point Origin1;
-        private long p1;
-        private long p2;
-
         #region Constructors
 
         public Vector(int x, int y)
@@ -699,21 +695,28 @@ namespace CoderStrikeBack
 
     public class Speed
     {
+        #region Fields
+
+        private readonly Vector _value;
+
+        #endregion
+
         #region Constructors
 
         public Speed(int speedX, int speedY)
         {
-            X = speedX;
-            Y = speedY;
+            _value = new Vector(speedX, speedY);
         }
 
         #endregion
 
         #region Properties
 
-        public int X { get; set; }
+        public long X { get { return _value.X; } }
 
-        public int Y { get; set; }
+        public long Y { get { return _value.Y; } }
+
+        public double AbsoluteValue { get { return _value.Norm; } }
 
         #endregion
 
@@ -735,7 +738,7 @@ namespace CoderStrikeBack
         {
             unchecked
             {
-                return (X * 397) ^ Y;
+                return _value.GetHashCode();
             }
         }
 
