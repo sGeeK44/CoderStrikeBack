@@ -4,3 +4,5 @@
 **/*.user
 **/*.ncrunch*
 /packages
+
+*.cache
