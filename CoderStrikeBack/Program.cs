@@ -43,8 +43,6 @@ namespace CoderStrikeBack
         {
             UpdatePlayerPodList(race);
             UpdateOpponentPodList(race);
-
-            race.UpdateState();
         }
 
         public void ExecuteCommands(PodCommandList nextCommands)
@@ -170,18 +168,12 @@ namespace CoderStrikeBack
 
         public List<Pod> OpponentPodList { get; set; }
 
-        public int CurrentLaps { get; private set; }
-
-        public bool HasLapsRemaining { get { return CurrentLaps < Laps; } }
-
         #endregion
 
         #region Pod Commands
 
         public PodCommandList ComputeNextCommands()
         {
-            if (CheckpointList == null || CheckpointList.Count == 0) return null;
-
             return new PodCommandList(PlayerPodList.Select(ComputeNextCommand).ToList());
         }
 
@@ -189,20 +181,12 @@ namespace CoderStrikeBack
         {
             if (podToMove == null) return null;
 
-            return new AcceleratePodCommand(podToMove.CurrentTarget.Position, 100);
+            return podToMove.ComputeNextCommand();
         }
 
         #endregion
 
         #region Refresh game state
-
-        public void UpdateState()
-        {
-            foreach (var pod in PlayerPodList)
-            {
-                if (pod.HasReachTarget()) pod.ComputeNextCheckpoint();
-            }
-        }
 
         public void UpdatePlayerPod(int index, string line)
         {
@@ -211,16 +195,21 @@ namespace CoderStrikeBack
 
         public void UpdateOpponentPod(int index, string line)
         {
-            PlayerPodList[index].Update(line);
+            OpponentPodList[index].Update(line);
         }
 
         #endregion
 
         #region Services
 
-        public void SetNewLap()
+        public Checkpoint GetFirstCheckPoint()
         {
-            CurrentLaps++;
+            return CheckpointList.First();
+        }
+
+        public Checkpoint GetCheckpoint(int nextCheckPointId)
+        {
+            return CheckpointList[nextCheckPointId];
         }
 
         public Checkpoint GetLastCheckPoint()
@@ -246,7 +235,6 @@ namespace CoderStrikeBack
             {
                 Laps = laps,
                 CheckpointList = checkpoints,
-                CurrentLaps = 1,
                 PlayerPodList = new List<Pod>(),
                 OpponentPodList = new List<Pod>()
             };
@@ -273,25 +261,13 @@ namespace CoderStrikeBack
 
     public class Checkpoint
     {
-        #region Constantes
-
-        private const int RADIUS = 600;
-
-        #endregion
-
-        #region Constructors
-
-        public Checkpoint() { }
-
-        #endregion
-
         #region Properties
 
         public int Index { get; set; }
 
         public Point Position { get; set; }
 
-        public int Radius { get { return RADIUS; } }
+        public int Radius { get { return 600; } }
 
         #endregion
 
@@ -325,6 +301,11 @@ namespace CoderStrikeBack
         }
 
         #endregion
+
+        internal bool IsLast(Race race)
+        {
+            return race.GetLastCheckPoint() == this;
+        }
     }
 
     #endregion
@@ -333,10 +314,12 @@ namespace CoderStrikeBack
 
     public class Pod
     {
+        private int _nextCheckpointId;
+
         #region Constantes
 
         private const int POWER_MAX = 200;
-        private const int ANGLE_CELCIUS_MAX = 18;
+        private const int MAX_SPEED_ANGLE_CELCIUS = 18;
         private const char INPUT_SEPARATOR = ' ';
 
         #endregion
@@ -362,11 +345,25 @@ namespace CoderStrikeBack
 
         public int Radius { get { return 400; } }
 
-        public int NextCheckPointId { get; set; }
+        public int Power { get; set; }
 
-        public virtual Checkpoint CurrentTarget { get; set; }
+        public int NextCheckpointId
+        {
+            get { return _nextCheckpointId; }
+            set
+            {
+                if (NextCheckpointIsReach(NextCheckpointId, value) && NextCheckpoint.IsLast(CurrentRace)) SetNewLap();
+                _nextCheckpointId = value;
+            }
+        }
+
+        public virtual Checkpoint NextCheckpoint { get { return CurrentRace.GetCheckpoint(NextCheckpointId); } }
 
         public Race CurrentRace { get; set; }
+
+        public int CurrentLap { get; private set; }
+
+        public bool HasLapsRemaining { get { return CurrentLap < CurrentRace.Laps; } }
 
         #endregion
 
@@ -385,36 +382,46 @@ namespace CoderStrikeBack
             var vy = int.Parse(inputs[3]);
             var angle = int.Parse(inputs[4]);
             var nextCheckPointId = int.Parse(inputs[5]);
-
+            
             CurrentPosition = new Point(x, y);
             CurrentSpeed = new Speed(vx, vy);
             Angle = angle;
-            NextCheckPointId = nextCheckPointId;
+            NextCheckpointId = nextCheckPointId;
+        }
+
+        private static bool NextCheckpointIsReach(int actualNextCheckpoint, int newNextCheckPointId)
+        {
+            return actualNextCheckpoint != newNextCheckPointId;
         }
 
         #endregion
 
         #region Services
 
+        public void SetNewLap()
+        {
+            CurrentLap++;
+        }
+
         public bool IsLastCheckpointLap()
         {
-            return CurrentRace.GetLastCheckPoint() == CurrentTarget;
-        }
-
-        public void ComputeNextCheckpoint()
-        {
-            if (!IsLastCheckpointLap()) CompteNextTargetInSameLap();
-            else if (CurrentRace.HasLapsRemaining) CurrentRace.SetNewLap();
-        }
-
-        private void CompteNextTargetInSameLap()
-        {
-            CurrentTarget = CurrentRace.GetNextCheckpoint(CurrentTarget);
+            return CurrentRace.GetLastCheckPoint() == NextCheckpoint;
         }
 
         public bool HasReachTarget()
         {
-            return CurrentTarget.IsReach(this);
+            return NextCheckpoint.IsReach(this);
+        }
+
+        public PodCommand ComputeNextCommand()
+        {
+            var power = ComputePower();
+            return new AcceleratePodCommand(NextCheckpoint.Position, power);
+        }
+
+        private int ComputePower()
+        {
+            return POWER_MAX;
         }
 
         #endregion
@@ -425,7 +432,10 @@ namespace CoderStrikeBack
         {
             if (currentRace == null) throw new ArgumentNullException("currentRace");
 
-            return new Pod(currentRace);
+            return new Pod(currentRace)
+            {
+                CurrentLap = 1
+            };
         }
 
         #endregion

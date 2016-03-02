@@ -95,7 +95,7 @@ namespace CoderStrikeBack.UnitTest
             var checkpoint = new Checkpoint { Position = new Point(1, 1) };
             var race = Race.Create(1, new List<Checkpoint> { checkpoint });
             var pod = new Mock<Pod>();
-            pod.Setup(_ => _.CurrentTarget).Returns(checkpoint);
+            pod.Setup(_ => _.NextCheckpoint).Returns(checkpoint);
 
             var result = race.ComputeNextCommand(pod.Object);
 

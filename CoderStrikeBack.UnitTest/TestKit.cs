@@ -14,17 +14,19 @@ namespace CoderStrikeBack.UnitTest
             return string.Format("{0} {1} {2} {3} {4} {5}", x, y, vx, vy, angle, nextChackPointId);
         }
 
-        internal static Race CreateValidRaceWithOneLapsOneCheckPoint()
+        public static Race CreateValidRaceWithOneLapsOneCheckPoint()
         {
-            var checkpointList = new List<Checkpoint>
-            {
-                new Checkpoint { Position = new Point(1, 1) }
-            };
-
+            var checkpointList = CreateCheckpointList(1);
             return Race.Create(1, checkpointList);
         }
 
-        internal static List<Checkpoint> CreateCheckpointList(int count)
+        public static Race CreateValidRaceWithTwoLapsTwoCheckPoint()
+        {
+            var checkpointList = CreateCheckpointList(2);
+            return Race.Create(2, checkpointList);
+        }
+
+        public static List<Checkpoint> CreateCheckpointList(int count)
         {
             var result = new List<Checkpoint>();
             for (var i = 0; i < count; i++)
