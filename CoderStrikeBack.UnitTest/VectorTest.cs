@@ -156,6 +156,16 @@ namespace CoderStrikeBack.UnitTest
             Assert.AreEqual(expected, vector.Opposite());
         }
 
+        [TestCase]
+        public void Multiply_WithReal_ShouldReturnRightResult()
+        {
+            var vector = new Vector(10, (double)45);
+            var expected = new Vector(30, (double)45);
+
+            Assert.AreEqual(expected, vector * 3);
+            Assert.AreEqual(expected, 3 * vector);
+        }
+
         [TestCase(1, 0, 0)]
         [TestCase(1, 1, 45)]
         [TestCase(0, 1, 90)]

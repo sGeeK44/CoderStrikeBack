@@ -683,7 +683,7 @@ namespace CoderStrikeBack
             Target = new Point(x, y);
         }
 
-        public Vector(double norme, int alpha)
+        public Vector(double norme, double alpha)
         {
             Origin = new Point(0, 0);
             var radAlpha = DegreeToRad(alpha);
@@ -700,6 +700,8 @@ namespace CoderStrikeBack
             Origin = origin;
             Target = target;
         }
+
+        public Vector(Vector left) : this(left.Origin, left.Target) { }
 
         public Vector(Point origin, long x, long y)
         {
@@ -790,12 +792,12 @@ namespace CoderStrikeBack
             return string.Format("Origine:{0}. Target:{1}.", Origin, Target);
         }
 
-        public static Vector operator *(Vector left, double right)
+        public static Vector operator *(Vector left, long right)
         {
-            throw new NotImplementedException();
+            return new Vector(left.Norm * right, left.Alpha);
         }
 
-        public static Vector operator *(double left, Vector right)
+        public static Vector operator *(long left, Vector right)
         {
             return right * left;
         }
