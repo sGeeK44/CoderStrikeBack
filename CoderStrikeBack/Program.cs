@@ -343,7 +343,7 @@ namespace CoderStrikeBack
 
         public virtual Point CurrentPosition { get; set; }
 
-        public Speed CurrentSpeed { get; set; }
+        public Vector CurrentSpeed { get; set; }
 
         public int AngleGetted { get; set; }
 
@@ -390,7 +390,7 @@ namespace CoderStrikeBack
             var nextCheckPointId = int.Parse(inputs[5]);
             
             CurrentPosition = new Point(x, y);
-            CurrentSpeed = new Speed(vx, vy);
+            CurrentSpeed = new Vector(vx, vy);
             AngleGetted = angle;
             NextCheckpointId = nextCheckPointId;
         }
@@ -417,6 +417,13 @@ namespace CoderStrikeBack
         public bool HasReachTarget()
         {
             return NextCheckpoint.IsReach(this);
+        }
+
+        public Vector NextSpeed()
+        {
+            return null;
+            //var power = 
+            //return (CurrentSpeed + Power) * 0.85;
         }
 
         public PodCommand ComputeNextCommand()
@@ -475,6 +482,11 @@ namespace CoderStrikeBack
         protected const int POWER_MAX = 200;
         protected const int MAX_SPEED_ANGLE_CELCIUS = 18;
 
+        public TurnStrategyBase()
+        {
+            Console.Error.WriteLine(GetType());
+        }
+
         public Point Target { get; set; }
 
         public abstract PodCommand ComputeNextCommand();
@@ -492,7 +504,7 @@ namespace CoderStrikeBack
     {
         public override PodCommand ComputeNextCommand()
         {
-            return new AcceleratePodCommand(Target, POWER_MAX);
+            return new AcceleratePodCommand(Target, POWER_MAX - 10);
         }
     }
 
@@ -500,7 +512,7 @@ namespace CoderStrikeBack
     {
         public override PodCommand ComputeNextCommand()
         {
-            return new AcceleratePodCommand(Target, POWER_MAX);
+            return new AcceleratePodCommand(Target, POWER_MAX - 50);
         }
     }
 
@@ -508,7 +520,7 @@ namespace CoderStrikeBack
     {
         public override PodCommand ComputeNextCommand()
         {
-            return new AcceleratePodCommand(Target, POWER_MAX);
+            return new AcceleratePodCommand(Target, POWER_MAX / 2);
         }
     }
 
@@ -671,6 +683,15 @@ namespace CoderStrikeBack
             Target = new Point(x, y);
         }
 
+        public Vector(double norme, int alpha)
+        {
+            Origin = new Point(0, 0);
+            var radAlpha = DegreeToRad(alpha);
+            var x = (long)Math.Round(Math.Cos(radAlpha) * norme);
+            var y = (long)Math.Round(Math.Sin(radAlpha) * norme);
+            Target = new Point(x, y);
+        }
+
         public Vector(Point origin, Point target)
         {
             if (origin == null) throw new ArgumentNullException("origin");
@@ -697,11 +718,28 @@ namespace CoderStrikeBack
         public long X
         {
             get { return Target.X - Origin.X; }
+            set { Target.X = value + Origin.X; }
         }
 
         public long Y
         {
             get { return Target.Y - Origin.Y; }
+            set { Target.Y = value + Origin.Y; }
+        }
+
+        public double Alpha
+        {
+            get
+            {
+                if (X > 0 && Y == 0) return 0;
+                if (X == 0 && Y > 0) return 90;
+                if (X == 0 && Y < 0) return -90;
+                if (X < 0 && Y == 0) return 180;
+
+                var result = X > 0 ? RadToDegree(GetAtanYX()) : RadToDegree(GetAtanXY()) + 90;
+                if (Y < 0) result *= -1;
+                return result;
+            }
         }
 
         public Point Origin { get; private set; }
@@ -711,6 +749,16 @@ namespace CoderStrikeBack
         public double Norm
         {
             get { return Math.Sqrt(Math.Pow(X, 2) + Math.Pow(Y, 2)); }
+        }
+
+        private double GetAtanYX()
+        {
+            return Math.Atan(Math.Abs(Y / X));
+        }
+
+        private double GetAtanXY()
+        {
+            return Math.Atan(Math.Abs(X / Y));
         }
 
         #endregion
@@ -737,6 +785,21 @@ namespace CoderStrikeBack
             }
         }
 
+        public override string ToString()
+        {
+            return string.Format("Origine:{0}. Target:{1}.", Origin, Target);
+        }
+
+        public static Vector operator *(Vector left, double right)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static Vector operator *(double left, Vector right)
+        {
+            return right * left;
+        }
+
         public static bool operator ==(Vector left, Vector right)
         {
             return Equals(left, right);
@@ -759,70 +822,23 @@ namespace CoderStrikeBack
             return new Vector(Origin, X + ac.X, Y + ac.Y);
         }
 
-        #endregion
-    }
-
-    #endregion
-
-    #region Speed
-
-    public class Speed
-    {
-        #region Fields
-
-        private readonly Vector _value;
-
-        #endregion
-
-        #region Constructors
-
-        public Speed(int speedX, int speedY)
+        public Vector Opposite()
         {
-            _value = new Vector(speedX, speedY);
+            return new Vector(Target, Origin);
         }
 
         #endregion
 
-        #region Properties
+        #region Utils
 
-        public long X { get { return _value.X; } }
-
-        public long Y { get { return _value.Y; } }
-
-        public double AbsoluteValue { get { return _value.Norm; } }
-
-        #endregion
-
-        #region Services
-        
-        public override bool Equals(object other)
+        public static double RadToDegree(double rad)
         {
-            return Equals(other as Speed);
+            return (rad * 180) / Math.PI;
         }
 
-        public bool Equals(Speed other)
+        public static double DegreeToRad(double degree)
         {
-            if (ReferenceEquals(null, other)) return false;
-            if (ReferenceEquals(this, other)) return true;
-            return X == other.X && Y == other.Y;
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                return _value.GetHashCode();
-            }
-        }
-
-        public static bool operator ==(Speed left, Speed right)
-        {
-            return Equals(left, right);
-        }
-
-        public static bool operator !=(Speed left, Speed right)
-        {
-            return !Equals(left, right);
+            return degree * Math.PI / 180;
         }
 
         #endregion

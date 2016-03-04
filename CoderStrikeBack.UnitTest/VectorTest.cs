@@ -111,6 +111,105 @@ namespace CoderStrikeBack.UnitTest
             Assert.AreEqual(expectedResult, ab.Sum(cd));
         }
 
+        [TestCase]
+        public void Equals_CompareToNull_ShouldBeNotEquals()
+        {
+            var firstVector = new Vector(1, 0);
+            var secondVector = new Vector(0, 0);
+
+            Assert.IsFalse(firstVector.Equals(secondVector));
+        }
+
+        [TestCase]
+        public void Equals_XIsDifferent_ShouldBeNotEquals()
+        {
+            var firstVector = new Vector(1, 0);
+            var secondVector = new Vector(0, 0);
+
+            Assert.IsFalse(firstVector.Equals(secondVector));
+        }
+
+        [TestCase]
+        public void Equals_YIsDifferent_ShouldBeNotEquals()
+        {
+            var firstVector = new Vector(0, 1);
+            var secondVector = new Vector(0, 0);
+
+            Assert.IsFalse(firstVector.Equals(secondVector));
+        }
+
+        [TestCase]
+        public void Equals_SameCoordinate_ShouldBeEquals()
+        {
+            var firstVector = new Vector(1, 1);
+            var secondVector = new Vector(1, 1);
+
+            Assert.IsTrue(firstVector.Equals(secondVector));
+        }
+
+        [TestCase]
+        public void Opposite_VecteurQuarterTopLeft_ShouldReturnRightResult()
+        {
+            var vector = new Vector(1, 1);
+            var expected = new Vector(1, 1, 0, 0);
+
+            Assert.AreEqual(expected, vector.Opposite());
+        }
+
+        [TestCase(1, 0, 0)]
+        [TestCase(1, 1, 45)]
+        [TestCase(0, 1, 90)]
+        [TestCase(-1, 1, 135)]
+        [TestCase(-1, 0, 180)]
+        [TestCase(-1, -1, -135)]
+        [TestCase(0, -1, -90)]
+        [TestCase(1, -1, -45)]
+        public void GetAlphaCelcius_OnSpecifiedPostion_ShouldReturnRightResult(int x, int y, int expectedAlpha)
+        {
+            var vector = new Vector(x, y);
+
+            Assert.AreEqual(expectedAlpha, vector.Alpha);
+        }
+
+        [TestCase(1, 0, 1, 0)]
+        [TestCase(1, 90, 0, 1)]
+        [TestCase(1, 180, -1, 0)]
+        [TestCase(1, -90, 0, -1)]
+        public void Constructor_FromNormAndAngle(long norm, int angle, int expectedX, int expectedY)
+        {
+            var vector = new Vector(norm, angle);
+            var expectedVector = new Vector(expectedX, expectedY);
+
+            Assert.AreEqual(expectedVector, vector);
+        }
+
+        [TestCase]
+        public void Constructor_FromNormAndAngleE()
+        {
+            var vector = new Vector(Math.Sqrt(2), 45);
+            var expectedVector = new Vector(1, 1);
+
+            Assert.AreEqual(expectedVector, vector);
+        }
+
+        [TestCase(180, Math.PI)]
+        [TestCase(360, 2*Math.PI)]
+        [TestCase(90, Math.PI/2)]
+        [TestCase(270, Math.PI/2 + Math.PI)]
+        public void DegreeToRad_AngleInDegree_ShouldReturnAngleInRadian(int degree, double expectedRadian)
+        {
+            Assert.AreEqual(expectedRadian, Vector.DegreeToRad(degree));
+        }
+
+        [TestCase(Math.PI, 180)]
+        [TestCase(2 * Math.PI, 360)]
+        [TestCase(Math.PI / 2, 90)]
+        [TestCase(Math.PI / 2 + Math.PI, 270)]
+        public void RadToDegree_AngleInRadian_ShouldReturnAngleInDegree(double radian, int expectedDegree)
+        {
+            Assert.AreEqual(expectedDegree, Vector.RadToDegree(radian));
+        }
+
         private void AssertNorm(Vector vector, double expectedResult)
         {
             Assert.AreEqual(expectedResult, vector.Norm);

@@ -63,7 +63,7 @@ namespace CoderStrikeBack.UnitTest
         public void Update_ValidInputLine_ShouldUpdateCurrentSpeed(int vx, int vy)
         {
             var pod = new Pod(null);
-            var expectedSpeed = new Speed(vx, vy);
+            var expectedSpeed = new Vector(vx, vy);
 
             pod.Update(TestKit.CreatePodLine(0, 0, vx, vy, 0, 0));
 

@@ -62,7 +62,6 @@
     <Compile Include="PodTest.cs" />
     <Compile Include="VectorTest.cs" />
     <Compile Include="ShieldPodCommandTest.cs" />
-    <Compile Include="SpeedTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PointTest.cs" />
     <Compile Include="TestKit.cs" />
