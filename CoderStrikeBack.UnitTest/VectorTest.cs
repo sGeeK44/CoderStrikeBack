@@ -220,6 +220,42 @@ namespace CoderStrikeBack.UnitTest
             Assert.AreEqual(expectedDegree, Vector.RadToDegree(radian));
         }
 
+        [TestCase]
+        public void NextSpeed_Case1()
+        {
+            var pod = new Pod
+            {
+                CurrentSpeed = new Vector(52, 66),
+                Power = 100
+            };
+
+            Assert.AreEqual(new Vector(96, 123), pod.NextSpeed());
+        }
+
+        [TestCase]
+        public void NextSpeed_Case2()
+        {
+            var pod = new Pod
+            {
+                CurrentSpeed = new Vector(96, 122),
+                Power = 100
+            };
+
+            Assert.AreEqual(new Vector(134, 170), pod.NextSpeed());
+        }
+
+        [TestCase]
+        public void NextSpeed_Case3()
+        {
+            var pod = new Pod
+            {
+                CurrentSpeed = new Vector(134, 170),
+                Power = 100
+            };
+
+            Assert.AreEqual(new Vector(166, 211), pod.NextSpeed());
+        }
+
         private void AssertNorm(Vector vector, double expectedResult)
         {
             Assert.AreEqual(expectedResult, vector.Norm);

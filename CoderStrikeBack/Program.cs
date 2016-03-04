@@ -421,9 +421,12 @@ namespace CoderStrikeBack
 
         public Vector NextSpeed()
         {
-            return null;
-            //var power = 
-            //return (CurrentSpeed + Power) * 0.85;
+            var newSpeed = CurrentSpeed.Sum(new Vector(Power, CurrentSpeed.Alpha));
+            
+            var radAlpha = Vector.DegreeToRad(newSpeed.Alpha);
+            var x = (long)Math.Truncate(Math.Cos(radAlpha) * newSpeed.Norm * 0.85);
+            var y = (long)Math.Truncate(Math.Sin(radAlpha) * newSpeed.Norm * 0.85);
+            return new Vector(new Point(0, 0), new Point(x, y));
         }
 
         public PodCommand ComputeNextCommand()
@@ -683,12 +686,12 @@ namespace CoderStrikeBack
             Target = new Point(x, y);
         }
 
-        public Vector(double norme, double alpha)
+        public Vector(double norm, double alpha)
         {
             Origin = new Point(0, 0);
             var radAlpha = DegreeToRad(alpha);
-            var x = (long)Math.Round(Math.Cos(radAlpha) * norme);
-            var y = (long)Math.Round(Math.Sin(radAlpha) * norme);
+            var x = (long)Math.Round(Math.Cos(radAlpha) * norm);
+            var y = (long)Math.Round(Math.Sin(radAlpha) * norm);
             Target = new Point(x, y);
         }
 
@@ -755,12 +758,12 @@ namespace CoderStrikeBack
 
         private double GetAtanYX()
         {
-            return Math.Atan(Math.Abs(Y / X));
+            return Math.Atan(Math.Abs((double)Y / X));
         }
 
         private double GetAtanXY()
         {
-            return Math.Atan(Math.Abs(X / Y));
+            return Math.Atan(Math.Abs((double)X / Y));
         }
 
         #endregion
@@ -792,12 +795,12 @@ namespace CoderStrikeBack
             return string.Format("Origine:{0}. Target:{1}.", Origin, Target);
         }
 
-        public static Vector operator *(Vector left, long right)
+        public static Vector operator *(Vector left, double right)
         {
             return new Vector(left.Norm * right, left.Alpha);
         }
 
-        public static Vector operator *(long left, Vector right)
+        public static Vector operator *(double left, Vector right)
         {
             return right * left;
         }
