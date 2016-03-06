@@ -90,5 +90,33 @@ namespace CoderStrikeBack.UnitTest
 
             Assert.IsTrue(firstPoint.Equals(secondPoint));
         }
+
+        [TestCase(0, 0, 0, 0)]
+        [TestCase(1, 1, 1, 1)]
+        [TestCase(-1, -1, -1, -1)]
+        public void Add_AtOriginValidSpeed_ShouldRightResult(int speedX, int speedY, int expectedX, int expectedY)
+        {
+            var point = new Point(0, 0);
+            var expectedPoint = new Point(expectedX, expectedY);
+            var speed = new Vector(speedX, speedY);
+
+            point.Add(speed);
+
+            Assert.AreEqual(expectedPoint, point);
+        }
+
+        [TestCase(0, 0, 1, 1)]
+        [TestCase(1, 1, 2, 2)]
+        [TestCase(-1, -1, 0, 0)]
+        public void Add_AtSomePointValidSpeed_ShouldRightResult(int speedX, int speedY, int expectedX, int expectedY)
+        {
+            var point = new Point(1, 1);
+            var expectedPoint = new Point(expectedX, expectedY);
+            var speed = new Vector(speedX, speedY);
+
+            point.Add(speed);
+
+            Assert.AreEqual(expectedPoint, point);
+        }
     }
 }

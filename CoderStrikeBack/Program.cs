@@ -267,13 +267,31 @@ namespace CoderStrikeBack
 
     public class Checkpoint
     {
+        #region Fields
+
+        private Circle _circle;
+
+        #endregion
+        #region Constructors
+
+        public Checkpoint()
+        {
+            _circle = new Circle(new Point(), 400);
+        }
+
+        #endregion
+
         #region Properties
 
         public int Index { get; set; }
 
-        public Point Position { get; set; }
+        public Point Position
+        {
+            get { return _circle.Center; }
+            set { _circle.Center = value; }
+        }
 
-        public int Radius { get { return 600; } }
+        public double Radius { get { return _circle.Radius; } }
 
         #endregion
 
@@ -283,14 +301,22 @@ namespace CoderStrikeBack
         {
             if (playerPod == null) return false;
 
-            var deltaX = Position.X - playerPod.CurrentPosition.X;
-            var deltaXSquared = deltaX * deltaX;
-            var deltaY = Position.Y - playerPod.CurrentPosition.Y;
-            var deltaYSquared = deltaY * deltaY;
-            var sumRadii = Radius;
-            var sumRadiiSquared = sumRadii * sumRadii;
+            return IsReach(new Vector(playerPod.CurrentPosition, playerPod.CurrentSpeed.Target));
+        }
 
-            return (deltaXSquared + deltaYSquared) <= sumRadiiSquared;
+        public bool IsReach(Point position)
+        {
+            return _circle.HasCollision(position);
+        }
+
+        public bool IsReach(Vector AB)
+        {
+            return _circle.HasCollision(AB);
+        }
+
+        public bool IsLast(Race race)
+        {
+            return race.GetLastCheckPoint() == this;
         }
 
         #endregion
@@ -302,16 +328,11 @@ namespace CoderStrikeBack
             return new Checkpoint
             {
                 Index = index,
-                Position = Point.CreateFromLine(p)
+                _circle = new Circle(Point.CreateFromLine(p), 400)
             };
         }
 
         #endregion
-
-        internal bool IsLast(Race race)
-        {
-            return race.GetLastCheckPoint() == this;
-        }
     }
 
     #endregion
@@ -369,8 +390,6 @@ namespace CoderStrikeBack
 
         public bool HasLapsRemaining { get { return CurrentLap < CurrentRace.Laps; } }
 
-        public ITurnStragegy CurrentTurnStrategy { get; set; }
-
         #endregion
 
         #region Refresh game state
@@ -419,9 +438,9 @@ namespace CoderStrikeBack
             return NextCheckpoint.IsReach(this);
         }
 
-        public Vector NextSpeed()
+        public static Vector NextSpeed(Vector currentSpeed, int power)
         {
-            var newSpeed = CurrentSpeed.Sum(new Vector(Power, CurrentSpeed.Alpha));
+            var newSpeed = currentSpeed.Sum(new Vector(power, currentSpeed.Alpha));
             
             var radAlpha = Vector.DegreeToRad(newSpeed.Alpha);
             var x = (long)Math.Truncate(Math.Cos(radAlpha) * newSpeed.Norm * 0.85);
@@ -431,15 +450,63 @@ namespace CoderStrikeBack
 
         public PodCommand ComputeNextCommand()
         {
+            bool? accelerate;
+            var canReachNextPointWithoutPower = CanReachNextPointWithoutPower(CurrentSpeed, new Point(CurrentPosition), AngleGetted, out accelerate);
+
+            if (canReachNextPointWithoutPower == null)
+            {
+                if (accelerate.GetValueOrDefault()) return new AcceleratePodCommand(NextCheckpoint.Position, 200);
+                else return new AcceleratePodCommand(NextCheckpoint.Position, 0);
+            }
+            
             var nextNextCheckpoint = CurrentRace.GetNextCheckpoint(NextCheckpoint);
             var virageAngle = Angle.CreateFromPoint(CurrentPosition, NextCheckpoint.Position, nextNextCheckpoint.Position);
-
-            CurrentTurnStrategy = TurnStrategyFactory.Create(virageAngle);
-            CurrentTurnStrategy.Target = NextCheckpoint.Position;
-
-            return CurrentTurnStrategy.ComputeNextCommand();
+            
+            var strategy = TurnStrategyFactory.Create(virageAngle);
+            if (canReachNextPointWithoutPower.Norm < strategy.MaxSpeed) return new AcceleratePodCommand(NextCheckpoint.Position, 200);
+            
+            return new AcceleratePodCommand(nextNextCheckpoint.Position, 0);
         }
 
+        private Vector CanReachNextPointWithoutPower(Vector currentSpeed, Point currentPosition, int currentAngle, out bool? accelerate)
+        {
+            if (currentSpeed.Norm == 0)
+            {
+                accelerate = true;
+                return null;
+            }
+            
+            currentPosition.Add(currentSpeed);
+            var nextSpeed = NextSpeed(currentSpeed, 0);
+
+
+            int nextAngle;
+            var Bv = new Vector(currentPosition, currentSpeed.Target);
+            var B = new Point(Bv.X, Bv.Y);
+            var angleMax = Angle.CreateFromPoint(NextCheckpoint.Position, CurrentPosition, B);
+            if (angleMax.ValueInDegree > 18) nextAngle = currentAngle - 18;
+            else nextAngle = currentAngle - angleMax.ValueInDegree;
+
+
+            var isReach = NextCheckpoint.IsReach(new Vector(currentPosition, currentSpeed.Target));
+            Console.Error.WriteLine("ComputeArrivedSpeedWithPower. currentSpeed:{0}. currentPosition:{1}. isReach:{2}. Checkpoint:{3}.", currentSpeed, currentPosition, isReach, NextCheckpoint.Position);
+            if (isReach)
+            {
+                if (nextAngle == 0)
+                {
+                    accelerate = null;
+                    return nextSpeed;
+                }
+                else
+                {
+                    accelerate = false;
+                    return null;
+                }
+            }
+            
+            return CanReachNextPointWithoutPower(nextSpeed, currentPosition, nextAngle, out accelerate);
+        }
+        
         #endregion
 
         #region Factory methods
@@ -463,7 +530,7 @@ namespace CoderStrikeBack
 
     public class TurnStrategyFactory
     {
-        public static ITurnStragegy Create(Angle virageAngle)
+        public static TurnStrategy Create(Angle virageAngle)
         {
             if (virageAngle.ValueInDegree > 135) return new LargeTurnStrategy();
             if (virageAngle.ValueInDegree > 90) return new MediumTurnStrategy();
@@ -473,58 +540,32 @@ namespace CoderStrikeBack
         }
     }
 
-    public interface ITurnStragegy
-    {
-        Point Target { get; set; }
-
-        PodCommand ComputeNextCommand();
-    }
-
-    public abstract class TurnStrategyBase : ITurnStragegy
+    public abstract class TurnStrategy
     {
         protected const int POWER_MAX = 200;
         protected const int MAX_SPEED_ANGLE_CELCIUS = 18;
 
-        public TurnStrategyBase()
-        {
-            Console.Error.WriteLine(GetType());
-        }
-
-        public Point Target { get; set; }
-
-        public abstract PodCommand ComputeNextCommand();
+        public abstract double MaxSpeed { get; }
     }
 
-    public class LargeTurnStrategy  : TurnStrategyBase
+    public class LargeTurnStrategy  : TurnStrategy
     {
-        public override PodCommand ComputeNextCommand()
-        {
-            return new AcceleratePodCommand(Target, POWER_MAX);
-        }
+        public override double MaxSpeed { get { return 150; } }
     }
 
-    public class MediumTurnStrategy : TurnStrategyBase
+    public class MediumTurnStrategy : TurnStrategy
     {
-        public override PodCommand ComputeNextCommand()
-        {
-            return new AcceleratePodCommand(Target, POWER_MAX - 10);
-        }
+        public override double MaxSpeed { get { return 100; } }
     }
 
-    public class SmallTurnStrategy : TurnStrategyBase
+    public class SmallTurnStrategy : TurnStrategy
     {
-        public override PodCommand ComputeNextCommand()
-        {
-            return new AcceleratePodCommand(Target, POWER_MAX - 50);
-        }
+        public override double MaxSpeed { get { return 50; } }
     }
 
-    public class SpinTurnStrategy : TurnStrategyBase
+    public class SpinTurnStrategy : TurnStrategy
     {
-        public override PodCommand ComputeNextCommand()
-        {
-            return new AcceleratePodCommand(Target, POWER_MAX / 2);
-        }
+        public override double MaxSpeed { get { return 10; } }
     }
 
     #endregion
@@ -543,10 +584,20 @@ namespace CoderStrikeBack
 
         #region Constructors
 
+        public Point() { }
+
         public Point(long x, long y)
         {
             X = x;
             Y = y;
+        }
+
+        public Point(Point point)
+        {
+            if (point == null) throw new ArgumentNullException("point");
+
+            X = point.X;
+            Y = point.Y;
         }
 
         #endregion
@@ -612,8 +663,99 @@ namespace CoderStrikeBack
             return new Point(checkpointX, checkpointY);
         }
 
+        public void Add(Vector currentSpeed)
+        {
+            if (currentSpeed == null) return;
+
+            X += currentSpeed.X;
+            Y += currentSpeed.Y;
+        }
+
 
         #endregion
+    }
+
+    #endregion
+
+    #region Circle
+
+    public class Circle
+    {
+        private Point _center;
+        private double _radius;
+        public Point Center
+        {
+            get
+            {
+                return _center;
+            }
+            set
+            {
+                if (value == null) throw new ArgumentNullException();
+
+                _center = value;
+            }
+        }
+
+        public double Radius
+        {
+            get
+            {
+                return _radius;
+            }
+            set
+            {
+                if (value <= 0) throw new ArgumentException("Le rayon doit être supérieur à 0");
+
+                _radius = value;
+            }
+        }
+
+        public Circle(Point center, double radius)
+        {
+            Center = center;
+            Radius = radius;
+        }
+
+        public bool HasCollision(Point position)
+        {
+            var deltaXSquared = Math.Pow(Center.X - position.X, 2);
+            var deltaYSquared = Math.Pow(Center.Y - position.Y, 2);
+            var radiusSquared = Math.Pow(Radius, 2);
+
+            return (deltaXSquared + deltaYSquared) <= radiusSquared;
+        }
+
+        public bool HasCollision(Vector AB)
+        {
+            // A : Origine Segment
+            // B : Target Segment
+            // C : Circle center
+            // I : Projection orthogonal de C sur la droite AB.
+
+            var AC = new Vector(AB.Origin, Center);
+            double numerateur = Math.Abs(AB.X * AC.Y - AB.Y * AC.X);   // norme du vecteur v
+
+            double denominateur = AB.Norm;
+            double CI = numerateur / denominateur;
+            if (CI > Radius) return false;
+
+            // A partir d'ici la droite du vecteur coupe le cercle
+            // Reste à voir si le vecteur est dedans ou à l'extérieur.
+            Vector BC = new Vector(AB.Target, Center);
+            float pscal1 = AB.X * AC.X + AB.Y * AC.Y;  // produit scalaire
+            float pscal2 = (-AB.X) * BC.X + (-AB.Y) * BC.Y;  // produit scalaire
+            if (pscal1 >= 0 && pscal2 >= 0)
+                return true;   // I entre A et B, ok.
+
+            // dernière possibilité, A ou B dans le cercle
+            if (HasCollision(AB.Origin))
+                return true;
+            if (HasCollision(AB.Target))
+                return true;
+
+            return false;
+        }
     }
 
     #endregion
@@ -680,10 +822,12 @@ namespace CoderStrikeBack
     {
         #region Constructors
 
-        public Vector(int x, int y)
+        public Vector(int x, int y) : this (new Point(x, y)) { }
+
+        public Vector(Point p)
         {
             Origin = new Point(0, 0);
-            Target = new Point(x, y);
+            Target = p;
         }
 
         public Vector(double norm, double alpha)

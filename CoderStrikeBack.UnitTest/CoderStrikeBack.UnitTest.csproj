@@ -56,6 +56,7 @@
   <ItemGroup>
     <Compile Include="AcceleratePodCommandTest.cs" />
     <Compile Include="AngleTest.cs" />
+    <Compile Include="CircleTest.cs" />
     <Compile Include="CheckpointTest.cs" />
     <Compile Include="PodCommandListTest.cs" />
     <Compile Include="RaceTest.cs" />

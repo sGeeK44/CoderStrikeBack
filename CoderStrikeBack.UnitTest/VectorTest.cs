@@ -223,37 +223,19 @@ namespace CoderStrikeBack.UnitTest
         [TestCase]
         public void NextSpeed_Case1()
         {
-            var pod = new Pod
-            {
-                CurrentSpeed = new Vector(52, 66),
-                Power = 100
-            };
-
-            Assert.AreEqual(new Vector(96, 123), pod.NextSpeed());
+            Assert.AreEqual(new Vector(96, 123), Pod.NextSpeed(new Vector(52, 66), 100));
         }
 
         [TestCase]
         public void NextSpeed_Case2()
         {
-            var pod = new Pod
-            {
-                CurrentSpeed = new Vector(96, 122),
-                Power = 100
-            };
-
-            Assert.AreEqual(new Vector(134, 170), pod.NextSpeed());
+            Assert.AreEqual(new Vector(134, 170), Pod.NextSpeed(new Vector(96, 122), 100));
         }
 
         [TestCase]
         public void NextSpeed_Case3()
         {
-            var pod = new Pod
-            {
-                CurrentSpeed = new Vector(134, 170),
-                Power = 100
-            };
-
-            Assert.AreEqual(new Vector(166, 211), pod.NextSpeed());
+            Assert.AreEqual(new Vector(166, 211), Pod.NextSpeed(new Vector(134, 170), 100));
         }
 
         private void AssertNorm(Vector vector, double expectedResult)

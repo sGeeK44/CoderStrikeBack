@@ -23,5 +23,53 @@ namespace CoderStrikeBack.UnitTest
             Assert.AreEqual(x, result.Position.X);
             Assert.AreEqual(y, result.Position.Y);
         }
+
+        [TestCase]
+        public void IsReach_LineOutsideCircle_ShouldReturnFalse()
+        {
+            var checkpoint = new Checkpoint();
+
+            Assert.IsFalse(checkpoint.IsReach(new Vector(401, 401, -401, 401)));
+        }
+
+        [TestCase]
+        public void IsReach_LineCutSegmentInside_ShouldReturnTrue()
+        {
+            var checkpoint = new Checkpoint();
+
+            Assert.IsTrue(checkpoint.IsReach(new Vector(401, 200, -401, 200)));
+        }
+
+        [TestCase]
+        public void IsReach_LineCutSegmentInOutside_ShouldReturnFalse()
+        {
+            var checkpoint = new Checkpoint();
+
+            Assert.IsFalse(checkpoint.IsReach(new Vector(410, 200, 401, 200)));
+        }
+
+        [TestCase]
+        public void IsReach_LineCutSegmentTotalyInside_ShouldReturnTrue()
+        {
+            var checkpoint = new Checkpoint();
+
+            Assert.IsTrue(checkpoint.IsReach(new Vector(390, 200, -390, 200)));
+        }
+
+        [TestCase]
+        public void IsReach_LineCutOriginSegmentInside_ShouldReturnTrue()
+        {
+            var checkpoint = new Checkpoint();
+
+            Assert.IsTrue(checkpoint.IsReach(new Vector(390, 200, -401, 200)));
+        }
+
+        [TestCase]
+        public void IsReach_LineCutTargetSegmentInside_ShouldReturnTrue()
+        {
+            var checkpoint = new Checkpoint();
+
+            Assert.IsTrue(checkpoint.IsReach(new Vector(401, 200, -390, 200)));
+        }
     }
 }
